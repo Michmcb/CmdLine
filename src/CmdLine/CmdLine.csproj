@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Version>0.1</Version>
+    <Authors>Michael McBride</Authors>
+    <Company></Company>
+    <Product>SectionConfig</Product>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Description>A .NET command line parsing library, very bare-bones. The aim is to have a source code generator to generate code are compile-time to parse arguments.</Description>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Michmcb/CmdLine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Michmcb/CmdLine</RepositoryUrl>
+    <RepositoryType>Github</RepositoryType>
+    <PackageTags>commandline, parsing, parser, option, command, line, argument, library</PackageTags>
+    <PackageReleaseNotes>- Initial release</PackageReleaseNotes>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageIconUrl />
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+</Project>
