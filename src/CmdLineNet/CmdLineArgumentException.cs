@@ -1,4 +1,4 @@
-﻿namespace CmdLine
+﻿namespace CmdLineNet
 {
 	using System;
 	using System.Runtime.Serialization;

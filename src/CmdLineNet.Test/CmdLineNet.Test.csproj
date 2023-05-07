@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CmdLine\CmdLine.csproj" />
+    <ProjectReference Include="..\CmdLineNet\CmdLineNet.csproj" />
   </ItemGroup>
 
 </Project>

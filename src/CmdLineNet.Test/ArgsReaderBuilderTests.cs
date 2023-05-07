@@ -1,6 +1,6 @@
-namespace CmdLine.Test.ArgsReaderBuilder
+namespace CmdLineNet.Test.ArgsReaderBuilder
 {
-	using CmdLine;
+	using CmdLineNet;
 	using Xunit;
 	public static class ArgsReaderBuilderTests
 	{

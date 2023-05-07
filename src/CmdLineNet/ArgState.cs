@@ -1,4 +1,4 @@
-﻿namespace CmdLine
+﻿namespace CmdLineNet
 {
 	/// <summary>
 	/// The kind of argument that was just read.

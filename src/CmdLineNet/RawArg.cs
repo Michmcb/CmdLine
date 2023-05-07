@@ -1,4 +1,4 @@
-﻿namespace CmdLine
+﻿namespace CmdLineNet
 {
 	/// <summary>
 	/// An argument that has been read, but not yet parsed into a target type.

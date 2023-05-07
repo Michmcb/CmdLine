@@ -1,4 +1,4 @@
-﻿namespace CmdLine
+﻿namespace CmdLineNet
 {
 	/// <summary>
 	/// Holds an argument's ID and its <see cref="ArgType"/>.

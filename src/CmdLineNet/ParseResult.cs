@@ -1,4 +1,4 @@
-﻿namespace CmdLine
+﻿namespace CmdLineNet
 {
 	using System.Diagnostics.CodeAnalysis;
 	/// <summary>

@@ -1,4 +1,4 @@
-﻿namespace CmdLine.Test
+﻿namespace CmdLineNet.Test
 {
 	using Xunit;
 
