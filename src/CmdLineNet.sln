@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmdLineNet", "CmdLineNet\Cm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmdLineNet.Test", "CmdLineNet.Test\CmdLineNet.Test.csproj", "{DEC0CE58-1F20-4486-A67A-4A79DB5590D8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmdLineNet.SourceGenerator", "CmdLineNet.SourceGenerator\CmdLineNet.SourceGenerator.csproj", "{D44AFBC3-0E1C-48AA-BD78-38325A16D663}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{DEC0CE58-1F20-4486-A67A-4A79DB5590D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DEC0CE58-1F20-4486-A67A-4A79DB5590D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DEC0CE58-1F20-4486-A67A-4A79DB5590D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

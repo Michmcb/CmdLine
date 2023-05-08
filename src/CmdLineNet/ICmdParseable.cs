@@ -1,6 +1,7 @@
 ﻿namespace CmdLineNet
 {
 	using System.Collections.Generic;
+
 	/// <summary>
 	/// An object which can parse an instance of itself.
 	/// </summary>
@@ -15,16 +16,6 @@
 		/// </summary>
 		/// <returns></returns>
 		static abstract ArgsReader<TId> GetReader();
-		/// <summary>
-		/// Reads arguments using <paramref name="reader"/>, and then parses using <see cref="Parse(IEnumerable{RawArg{TId}})"/>.
-		/// </summary>
-		/// <param name="reader">The reader.</param>
-		/// <param name="args">The arguments.</param>
-		/// <returns>A parsed <typeparamref name="TSelf"/>, or an error message.</returns>
-		static ParseResult<TSelf> Parse(ArgsReader<TId> reader, IEnumerable<string> args)
-		{
-			return TSelf.Parse(reader.Read(args));
-		}
 		/// <summary>
 		/// Attempts to parse <paramref name="args"/> into a <typeparamref name="TSelf"/>.
 		/// </summary>

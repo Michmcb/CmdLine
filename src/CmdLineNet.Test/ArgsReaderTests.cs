@@ -5,24 +5,33 @@
 
 	public static class ArgsReaderTests
 	{
-		private static readonly ArgsReader<ArgId> reader = new ArgsReaderBuilder<ArgId>()
-			.Option('a', "alpha", ArgId.A)
-			.Option('b', "bravo", ArgId.B)
-			.Option('c', "charlie", ArgId.C)
-			.Switch('d', "delta", ArgId.D)
-			.Switch('e', "echo", ArgId.E)
-			.Switch('f', "foxtrot", ArgId.F)
-			.Build();
+		[Fact]
+		public static void ParsingToObject()
+		{
+			string[] args = new string[] { "-a", "alpha value", "--bravo", "bravo value", "--charlie", "charlie value", "--echo", "-f" };
+			Assert.True(Args.Parse(Args.GetReader().Read(args)).Ok(out var parsed, out var errMsg));
+			Check(parsed);
+
+			static void Check(Args parsed)
+			{
+				Assert.Equal("alpha value", parsed.A);
+				Assert.Equal("bravo value", parsed.B);
+				Assert.Equal("charlie value", parsed.C);
+				Assert.False(parsed.D);
+				Assert.True(parsed.E);
+				Assert.True(parsed.F);
+			}
+		}
 		[Fact]
 		public static void MixOfStuff()
 		{
 			string[] args = new string[] { "-a", "alpha value", "--bravo", "bravo value", "lone value", "--echo", "-d", "some value", "some other value" };
-			Assert.Collection(reader.Read(args),
+			Assert.Collection(Args.GetReader().Read(args),
 				x => CheckArg(x, ArgId.A, "alpha value", ArgState.ShortOption),
 				x => CheckArg(x, ArgId.B, "bravo value", ArgState.LongOption),
 				x => CheckArg(x, default, "lone value", ArgState.Value),
-				x => CheckArg(x, ArgId.E, null, ArgState.LongSwitch),
-				x => CheckArg(x, ArgId.D, null, ArgState.ShortSwitch),
+				x => CheckArg(x, ArgId.E, string.Empty, ArgState.LongSwitch),
+				x => CheckArg(x, ArgId.D, string.Empty, ArgState.ShortSwitch),
 				x => CheckArg(x, default, "some value", ArgState.Value),
 				x => CheckArg(x, default, "some other value", ArgState.Value)
 			);
@@ -31,17 +40,17 @@
 		public static void StackedSwitches()
 		{
 			string[] args = new string[] { "-def" };
-			Assert.Collection(reader.Read(args),
-				x => CheckArg(x, ArgId.D, null, ArgState.StackedSwitch),
-				x => CheckArg(x, ArgId.E, null, ArgState.StackedSwitch),
-				x => CheckArg(x, ArgId.F, null, ArgState.StackedSwitch)
+			Assert.Collection(Args.GetReader().Read(args),
+				x => CheckArg(x, ArgId.D, string.Empty, ArgState.StackedSwitch),
+				x => CheckArg(x, ArgId.E, string.Empty, ArgState.StackedSwitch),
+				x => CheckArg(x, ArgId.F, string.Empty, ArgState.StackedSwitch)
 			);
 		}
 		[Fact]
 		public static void DashDashSignifiesOnlyValues()
 		{
 			string[] args = new string[] { "-a", "alpha value", "--", "-a", "-b", "-c", "value" };
-			Assert.Collection(reader.Read(args),
+			Assert.Collection(Args.GetReader().Read(args),
 				x => CheckArg(x, ArgId.A, "alpha value", ArgState.ShortOption),
 				x => CheckArg(x, default, "-a", ArgState.Value),
 				x => CheckArg(x, default, "-b", ArgState.Value),
@@ -53,27 +62,27 @@
 		public static void LoneDash()
 		{
 			string[] args = new string[] { "-" };
-			Assert.Collection(reader.Read(args), x => CheckArg(x, default, "-", ArgState.Value));
+			Assert.Collection(Args.GetReader().Read(args), x => CheckArg(x, default, "-", ArgState.Value));
 		}
 		[Fact]
 		public static void OptionFollowedByNothingIsNull()
 		{
-			Assert.Collection(reader.Read(new string[] { "-a" }), x => CheckArg(x, ArgId.A, null, ArgState.ShortOption));
-			Assert.Collection(reader.Read(new string[] { "--alpha" }), x => CheckArg(x, ArgId.A, null, ArgState.LongOption));
+			Assert.Collection(Args.GetReader().Read(new string[] { "-a" }), x => CheckArg(x, ArgId.A, string.Empty, ArgState.ShortOption));
+			Assert.Collection(Args.GetReader().Read(new string[] { "--alpha" }), x => CheckArg(x, ArgId.A, string.Empty, ArgState.LongOption));
 		}
 		[Fact]
 		public static void Unrecognized()
 		{
-			Assert.Collection(reader.Read(new string[] { "-x" }), x => CheckArg(x, default, "Unrecognized short argument: -x", ArgState.ShortUnrecognized));
-			Assert.Collection(reader.Read(new string[] { "--randomthing" }), x => CheckArg(x, default, "Unrecognized long argument: --randomthing", ArgState.LongUnrecognized));
-			Assert.Collection(reader.Read(new string[] { "-dey" }),
-				x => CheckArg(x, ArgId.D, null, ArgState.StackedSwitch),
-				x => CheckArg(x, ArgId.E, null, ArgState.StackedSwitch),
+			Assert.Collection(Args.GetReader().Read(new string[] { "-x" }), x => CheckArg(x, default, "Unrecognized short argument: -x", ArgState.ShortUnrecognized));
+			Assert.Collection(Args.GetReader().Read(new string[] { "--randomthing" }), x => CheckArg(x, default, "Unrecognized long argument: --randomthing", ArgState.LongUnrecognized));
+			Assert.Collection(Args.GetReader().Read(new string[] { "-dey" }),
+				x => CheckArg(x, ArgId.D, string.Empty, ArgState.StackedSwitch),
+				x => CheckArg(x, ArgId.E, string.Empty, ArgState.StackedSwitch),
 				x => CheckArg(x, default, "Unrecognized switch found in stacked switches: y", ArgState.ShortUnrecognized)
 			);
-			Assert.Collection(reader.Read(new string[] { "-dea" }),
-				x => CheckArg(x, ArgId.D, null, ArgState.StackedSwitch),
-				x => CheckArg(x, ArgId.E, null, ArgState.StackedSwitch),
+			Assert.Collection(Args.GetReader().Read(new string[] { "-dea" }),
+				x => CheckArg(x, ArgId.D, string.Empty, ArgState.StackedSwitch),
+				x => CheckArg(x, ArgId.E, string.Empty, ArgState.StackedSwitch),
 				x => CheckArg(x, default, "A short option was found in stacked switches: a", ArgState.ShortOptionFoundInStackedSwitches)
 			);
 		}

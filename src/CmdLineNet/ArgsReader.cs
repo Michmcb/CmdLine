@@ -63,12 +63,12 @@
 							switch (which.Type)
 							{
 								case ArgType.Switch:
-									yield return new(which.Id, null, ArgState.LongSwitch);
+									yield return new(which.Id, string.Empty, ArgState.LongSwitch);
 									break;
 								case ArgType.Option:
 									yield return args.MoveNext()
 										? new(which.Id, args.Current, ArgState.LongOption)
-										: new(which.Id, null, ArgState.LongOption);
+										: new(which.Id, string.Empty, ArgState.LongOption);
 									break;
 								default:
 									yield return new(default, string.Concat("ArgType enum value was not valid for argument \"", s, "\": ", ((int)which.Type).ToString()), ArgState.OtherError);
@@ -97,12 +97,12 @@
 							switch (which.Type)
 							{
 								case ArgType.Switch:
-									yield return new(which.Id, null, ArgState.ShortSwitch);
+									yield return new(which.Id, string.Empty, ArgState.ShortSwitch);
 									break;
 								case ArgType.Option:
 									yield return args.MoveNext()
 										? new(which.Id, args.Current, ArgState.ShortOption)
-										: new(which.Id, null, ArgState.ShortOption);
+										: new(which.Id, string.Empty, ArgState.ShortOption);
 									break;
 								default:
 									yield return new(default, string.Concat("ArgType enum value was not valid for argument \"", s, "\": ", ((int)which.Type).ToString()), ArgState.OtherError);
@@ -122,7 +122,7 @@
 							if (ShortOpts.TryGetValue(c, out ArgMeta<TId> which))
 							{
 								yield return which.Type == ArgType.Switch
-									? new(which.Id, null, ArgState.StackedSwitch)
+									? new(which.Id, string.Empty, ArgState.StackedSwitch)
 									: new(which.Id, MakeStr("A short option was found in stacked switches: ", c), ArgState.ShortOptionFoundInStackedSwitches);
 							}
 							else

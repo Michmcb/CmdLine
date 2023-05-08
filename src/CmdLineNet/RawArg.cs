@@ -7,7 +7,7 @@
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	public readonly struct RawArg<TId> where TId : struct
 	{
-		public RawArg(TId id, string? content, ArgState argType)
+		public RawArg(TId id, string content, ArgState argType)
 		{
 			Id = id;
 			Content = content;
@@ -19,10 +19,10 @@
 		public TId Id { get; }
 		/// <summary>
 		/// For options and values, the content that was read, if any.
-		/// For switches, this will be null.
+		/// For switches, this will be empty.
 		/// For errors, this will be an error message.
 		/// </summary>
-		public string? Content { get; }
+		public string Content { get; }
 		/// <summary>
 		/// The state of what was read. This indicates whether it was a short-form or long-form argument,
 		/// or if <see cref="Content"/> represents an error message due to malformed or unrecognized arguments.
