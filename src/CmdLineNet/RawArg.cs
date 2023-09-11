@@ -28,5 +28,18 @@
 		/// or if <see cref="Content"/> represents an error message due to malformed or unrecognized arguments.
 		/// </summary>
 		public ArgState State { get; }
+		/// <summary>
+		/// Returns true if <see cref="State"/> indicates success, or false otherwise.
+		/// </summary>
+		public bool Ok => State switch
+		{
+			ArgState.Value => true,
+			ArgState.LongOption => true,
+			ArgState.ShortOption => true,
+			ArgState.LongSwitch => true,
+			ArgState.ShortSwitch => true,
+			ArgState.StackedSwitch => true,
+			_ => false,
+		};
 	}
 }

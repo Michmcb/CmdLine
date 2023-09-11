@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CmdLineNet.SourceGenerator\CmdLineNet.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\CmdLineNet\CmdLineNet.csproj" />
   </ItemGroup>
 

@@ -20,15 +20,19 @@
 		private readonly HashSet<string> argAttributeNames = new();
 		public void Initialize(GeneratorInitializationContext context)
 		{
-//#if DEBUG
-//			if (!System.Diagnostics.Debugger.IsAttached)
-//			{
-//				System.Diagnostics.Debugger.Launch();
-//			}
-//#endif
+#if DEBUG
+			if (!System.Diagnostics.Debugger.IsAttached)
+			{
+				System.Diagnostics.Debugger.Launch();
+			}
+#endif
 			argAttributeNames.Add(SwitchAttributeName);
 			argAttributeNames.Add(OptionAttributeName);
 			argAttributeNames.Add(ValueAttributeName);
+		}
+		public string FullyQualifiedName(ISymbol sym)
+		{
+			return sym.ContainingNamespace == null ? sym.Name : string.Concat(sym.ContainingNamespace.ToString(), ".", sym.Name);
 		}
 		public void Execute(GeneratorExecutionContext context)
 		{
@@ -80,8 +84,7 @@ namespace CmdLine
 			IEnumerable<RecordDeclarationSyntax> targetClasses = context.Compilation.SyntaxTrees
 				.SelectMany(x => x.GetRoot(ct).DescendantNodes())
 				.OfType<RecordDeclarationSyntax>()
-				.Where(x => x.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == CommandAttributeName)))
-				.AsEnumerable();
+				.Where(x => x.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == CommandAttributeName)));
 
 			/*
 			 * Having a static interface makes things easy but it precludes any ability to have options and locks us to later versions of .net
@@ -122,7 +125,6 @@ namespace CmdLine
 					continue;
 				}
 
-				// TODO this stuff ought to be in a different method so we can generate stuff for record classes and normal classes
 				Indent indent = new(0);
 				StringBuilder sbStart = new("#nullable enable\nnamespace ");
 				sbStart.Append(symTargetClass.ContainingNamespace.ToString()).Append('\n')
@@ -130,23 +132,30 @@ namespace CmdLine
 					.Append(indent.In())
 					.Append("using System;\n")
 					.Append(indent.Val).Append("using System.Collections.Generic;\n")
+					.Append(indent.Val).Append("using CmdLineNet;\n")
 					.Append(indent.Val).Append(target.Modifiers.ToString())
 					.Append(" record class ")
 					.Append(target.Identifier.ToString())
-					.Append(" : ICmdParseable<int, ")
+					.Append(" : ICmdParseable<")
+					.Append(target.Identifier.ToString())
+					.Append(".Id, ")
 					.Append(target.Identifier.ToString())
 					.Append(">\n")
 					.Append(indent.Val).Append("{\n");
 
 				indent.In();
 
-				StringBuilder getParserMethod = GenerateGetParserMethod(indent, semanticModel, target, target.ParameterList);
+				StringBuilder idEnum = new(indent.Val);
+				idEnum.Append("public enum Id{");
+				foreach (var p in target.ParameterList.Parameters)
+				{
+					idEnum.Append(p.Identifier.ToString()).Append(',');
+				}
+				idEnum.Append("}\n");
 
-				StringBuilder parseMethod = new(indent.Val);
-				parseMethod.Append("public static ParseResult<").Append(target.Identifier.ToString()).Append("> Parse(IEnumerable<RawArg<int>> args)\n")
-					.Append(indent.Val).Append("{\n")
-					.Append(indent.In()).Append("throw new System.NotImplementedException();\n") // TODO do the impl of the method here
-					.Append(indent.Out()).Append("}\n");
+				StringBuilder getParserMethod = GenerateGetReaderMethod(indent, semanticModel, target, target.ParameterList);
+
+				StringBuilder parseMethod = GenerateParseMethod(indent, semanticModel, target, target.ParameterList);
 
 				indent.Out();
 				StringBuilder sbEnd = new(indent.Val);
@@ -156,7 +165,7 @@ namespace CmdLine
 
 				StringBuilder sb = new();
 				sb.Append(sbStart);
-				foreach (StringBuilder m in new StringBuilder[] { getParserMethod, parseMethod })
+				foreach (StringBuilder m in new StringBuilder[] { idEnum, getParserMethod, parseMethod, })
 				{
 					sb.Append(m);
 				}
@@ -165,18 +174,79 @@ namespace CmdLine
 				context.AddSource(target.Identifier.ToString() + ".g.cs", SourceText.From(source, Encoding.UTF8));
 			}
 		}
-		public StringBuilder GenerateGetParserMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParameterListSyntax parameterList)
+		public StringBuilder GenerateParseMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParameterListSyntax parameterList)
 		{
 			StringBuilder sb = new(indent.Val);
-			sb.Append("public static ArgsParser<int> GetParser()\n")
+			sb.Append("public static ParseResult<").Append(target.Identifier.ToString()).Append("> Parse(IEnumerable<RawArg<Id>> args)\n")
+				.Append(indent.Val).Append("{\n");
+
+			indent.In();
+
+			foreach (var p in parameterList.Parameters)
+			{
+				var pSymbol = semanticModel.GetDeclaredSymbol(p);
+				if (pSymbol != null)
+				{
+					sb.Append(indent).Append(FullyQualifiedName(pSymbol.Type)).Append(' ').Append(p.Identifier.ToString()).Append(";\n");
+				}
+				else
+				{
+
+				}
+			}
+			sb.Append(indent).Append("foreach (var a in args)\n")
+				.Append(indent).Append("{\n")
+				.Append(indent.In()).Append("if (!a.Ok) return a.Content;\n")
+				.Append(indent).Append("switch (a.Id)\n")
+				.Append(indent).Append("{\n");
+
+			indent.In();
+
+			int i = 0;
+			foreach (var p in parameterList.Parameters)
+			{
+				var pSymbol = semanticModel.GetDeclaredSymbol(p);
+				if (pSymbol != null)
+				{
+					sb.Append(indent).Append("case Id.").Append(p.Identifier.ToString()).Append(":\n");
+					indent.In();
+
+					if (pSymbol.Type.SpecialType == SpecialType.System_String)
+					{
+						sb.Append(indent).Append(p.Identifier.ToString()).Append(" = a.Content;\n");
+					}
+					else
+					{
+						sb.Append(indent).Append("if (").Append(FullyQualifiedName(pSymbol.Type)).Append(".TryParse(a.Content, out var v").Append(i).Append(") ")
+							.Append(p.Identifier.ToString()).Append(" = v").Append(i).Append(";\n");
+
+						sb.Append(indent).Append("else return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content;");
+					}
+					sb.Append(indent).Append("break;\n");
+					indent.Out();
+				}
+				i++;
+			}
+
+			sb.Append(indent.Out()).Append("}\n")
+				.Append(indent.Out()).Append("}\n")
+				.Append(indent).Append("return new ").Append(target.Identifier.ToString()).Append('(')
+				.Append(string.Join(", ", parameterList.Parameters.Select(x => x.Identifier.ToString()))).Append(");\n")
+				.Append(indent.Out()).Append("}\n");
+			return sb;
+		}
+		public StringBuilder GenerateGetReaderMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParameterListSyntax parameterList)
+		{
+			StringBuilder sb = new(indent.Val);
+			sb.Append("public static ArgsReader<Id> GetReader()\n")
 				.Append(indent.Val).Append("{\n")
-				.Append(indent.In()).Append("return new ArgsParserBuilder<int>()\n");
+				.Append(indent.In()).Append("return new ArgsReaderBuilder<Id>()\n");
 
 			indent.In();
 			List<IParameterSymbol> dtoClassParams = parameterList.Parameters
 				.Select(x => semanticModel.GetDeclaredSymbol(x) ?? throw new InvalidOperationException("Could not get declared symbol for parameter symbol: " + x.ToString()))
 				.ToList();
-			int id = 1;
+
 			foreach (var p in parameterList.Parameters)
 			{
 				// TODO make sure we only have 1 attribute of switch/value/option
@@ -212,16 +282,16 @@ namespace CmdLine
 					{
 						if (nameValues.TryGetValue("LongName", out var longNameSyntax))
 						{
-							sb.Append(shortNameSyntax.ToString()).Append(", ").Append(longNameSyntax.ToString()).Append(", ").Append(id.ToString()).Append(")\n");
+							sb.Append(shortNameSyntax.ToString()).Append(", ").Append(longNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
 						}
 						else
 						{
-							sb.Append(shortNameSyntax.ToString()).Append(", ").Append(id.ToString()).Append(")\n");
+							sb.Append(shortNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
 						}
 					}
 					else if (nameValues.TryGetValue("LongName", out var longNameSyntax))
 					{
-						sb.Append(longNameSyntax.ToString()).Append(", ").Append(id.ToString()).Append(")\n");
+						sb.Append(longNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
 					}
 					else
 					{
@@ -232,7 +302,6 @@ namespace CmdLine
 				{
 
 				}
-				id++;
 			}
 
 			sb.Append(indent.Val).Append(".Build();\n");
