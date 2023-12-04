@@ -1,7 +1,18 @@
 ﻿namespace CmdLineNet.Test.ArgsReaderBuilder
 {
-	using CmdLine;
-
-	[Command]
-	public sealed partial record class TestCommand([Option(LongName = "value", ShortName = 'v')]string Value);
+	[Verb]
+	public sealed partial record class TestCommand(
+		[Option(LongName = "value", ShortName = 'v')] string? Value,
+		[Option(LongName = "intvalue", ShortName = 'i')] DateTimeKind Value2 = DateTimeKind.Utc)
+	{
+		public static ParseResult<DateTimeKind> ParseValue2(string raw)
+		{
+			switch (raw)
+			{
+				case nameof(DateTimeKind.Utc): return DateTimeKind.Utc;
+				case nameof(DateTimeKind.Local): return DateTimeKind.Local;
+				default: return "Must be either Utc or Local";
+			}
+		}
+	}
 }

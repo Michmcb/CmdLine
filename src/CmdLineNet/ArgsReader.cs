@@ -7,7 +7,12 @@
 	/// <typeparam name="TId">The type of the ID given to each Argument.</typeparam>
 	public sealed class ArgsReader<TId> where TId : struct
 	{
-		public ArgsReader(IReadOnlyDictionary<char, ArgMeta<TId>> shortOpts, IReadOnlyDictionary<string, ArgMeta<TId>> longOpts)
+		/// <summary>
+		/// Creates a new instance which is configured to recognize arguments identified by <paramref name="shortOpts"/> and <paramref name="longOpts"/>.
+		/// </summary>
+		/// <param name="shortOpts">The short form of arguments.</param>
+		/// <param name="longOpts">The long form of arguments. Keys must NOT have leading --./param>
+		public ArgsReader(IReadOnlyDictionary<char, ArgIdType<TId>> shortOpts, IReadOnlyDictionary<string, ArgIdType<TId>> longOpts)
 		{
 			ShortOpts = shortOpts;
 			LongOpts = longOpts;
@@ -15,11 +20,11 @@
 		/// <summary>
 		/// All of the short-form options.
 		/// </summary>
-		public IReadOnlyDictionary<char, ArgMeta<TId>> ShortOpts { get; }
+		public IReadOnlyDictionary<char, ArgIdType<TId>> ShortOpts { get; }
 		/// <summary>
 		/// All of the long-form options.
 		/// </summary>
-		public IReadOnlyDictionary<string, ArgMeta<TId>> LongOpts { get; }
+		public IReadOnlyDictionary<string, ArgIdType<TId>> LongOpts { get; }
 		/// <summary>
 		/// Reads <paramref name="args"/> and produces <see cref="RawArg{TId}"/>.
 		/// </summary>
@@ -40,6 +45,8 @@
 		/// <returns>The arguments</returns>
 		public IEnumerable<RawArg<TId>> Read(IEnumerator<string> args)
 		{
+			// TODO we need a way for the reader to enforce the arity of values, options, and switches (if this is the correct place for that)
+			// TODO we need a way for the reader to enforce some arguments being mutually exclusive (if this is the correct place for that)
 			// http://docopt.org/
 			while (args.MoveNext())
 			{
@@ -58,7 +65,7 @@
 					{
 						// Long switch or option
 						string option = s[2..];
-						if (LongOpts.TryGetValue(option, out ArgMeta<TId> which))
+						if (LongOpts.TryGetValue(option, out ArgIdType<TId> which))
 						{
 							switch (which.Type)
 							{
@@ -92,7 +99,7 @@
 					{
 						// Short switch or option
 						char c = s[1];
-						if (ShortOpts.TryGetValue(c, out ArgMeta<TId> which))
+						if (ShortOpts.TryGetValue(c, out ArgIdType<TId> which))
 						{
 							switch (which.Type)
 							{
@@ -119,7 +126,7 @@
 						// Stacked switches
 						foreach (char c in s[1..])
 						{
-							if (ShortOpts.TryGetValue(c, out ArgMeta<TId> which))
+							if (ShortOpts.TryGetValue(c, out ArgIdType<TId> which))
 							{
 								yield return which.Type == ArgType.Switch
 									? new(which.Id, string.Empty, ArgState.StackedSwitch)

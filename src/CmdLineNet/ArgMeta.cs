@@ -1,23 +1,33 @@
 ﻿namespace CmdLineNet
 {
 	/// <summary>
-	/// Holds an argument's ID and its <see cref="ArgType"/>.
+	/// Holds metadata about an argument.
 	/// </summary>
-	/// <typeparam name="TId">The type of the ID.</typeparam>
-	public readonly struct ArgMeta<TId> where TId : struct
+	/// <typeparam name="TId">The type of the ID given to each Argument.</typeparam>
+	public sealed class ArgMeta<TId> where TId : struct
 	{
-		public ArgMeta(TId id, ArgType type)
+		public ArgMeta(string helpText, int arity, bool optional/*, IReadOnlySet<TId>? mutuallyExclusive*/)
 		{
-			Id = id;
-			Type = type;
+			HelpText = helpText;
+			Arity = arity;
+			Optional = optional;
+			//MutuallyExclusive = mutuallyExclusive;
 		}
 		/// <summary>
-		/// The ID for this argument.
+		/// Help text for the argument.
 		/// </summary>
-		public TId Id { get; }
+		public string HelpText { get; }
 		/// <summary>
-		/// The type of this argument.
+		/// The number of times this argument may appear
 		/// </summary>
-		public ArgType Type { get; }
+		public int Arity { get; }
+		/// <summary>
+		/// Whether or not this argument is optional
+		/// </summary>
+		public bool Optional { get; }
+		///// <summary>
+		///// Indicates that this argument must NOT appear with any of these other arguments.
+		///// </summary>
+		//public IReadOnlySet<TId>? MutuallyExclusive { get; }
 	}
 }

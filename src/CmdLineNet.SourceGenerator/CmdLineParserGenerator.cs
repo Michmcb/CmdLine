@@ -12,12 +12,7 @@
 	[Generator]
 	public sealed class CmdLineParserGenerator : ISourceGenerator
 	{
-		public const string CommandAttributeName = "Command";
-		public const string CommandConstructorName = "CommandConstructor";
-		public const string SwitchAttributeName = "Switch";
-		public const string OptionAttributeName = "Option";
-		public const string ValueAttributeName = "Value";
-		private readonly HashSet<string> argAttributeNames = new();
+
 		public void Initialize(GeneratorInitializationContext context)
 		{
 #if DEBUG
@@ -26,9 +21,6 @@
 				System.Diagnostics.Debugger.Launch();
 			}
 #endif
-			argAttributeNames.Add(SwitchAttributeName);
-			argAttributeNames.Add(OptionAttributeName);
-			argAttributeNames.Add(ValueAttributeName);
 		}
 		public string FullyQualifiedName(ISymbol sym)
 		{
@@ -38,53 +30,10 @@
 		{
 			CancellationToken ct = context.CancellationToken;
 
-			context.AddSource("CmdLineAttributes.g.cs", SourceText.From(@"#nullable enable
-namespace CmdLine
-{
-	using System;
-
-	[AttributeUsage(AttributeTargets.Class)]
-	public sealed class " + CommandAttributeName + @"Attribute : Attribute
-	{
-		public string? Help { get; init; }
-	}
-
-	[AttributeUsage(AttributeTargets.Constructor)]
-	public sealed class " + CommandConstructorName + @"Attribute : Attribute{}
-
-	[AttributeUsage(AttributeTargets.Parameter)]
-	public sealed class " + SwitchAttributeName + @"Attribute : Attribute
-	{
-		public char ShortName { get; init; }
-		public string? LongName { get; init; }
-		public int Arity { get; init; } = 1;
-		public string? Help { get; init; }
-	}
-
-	[AttributeUsage(AttributeTargets.Parameter)]
-	public sealed class " + OptionAttributeName + @"Attribute : Attribute
-	{
-		public char ShortName { get; init; }
-		public string? LongName { get; init; }
-		public bool Optional { get; init; }
-		public int Arity { get; init; } = 1;
-		public string? Help { get; init; }
-	}
-
-	[AttributeUsage(AttributeTargets.Parameter)]
-	public sealed class " + ValueAttributeName + @"Attribute : Attribute
-	{
-		public bool Optional { get; init; }
-		public int Arity { get; init; } = 1;
-		public string? Help { get; init; }
-	}
-}
-#nullable restore", Encoding.UTF8));
-
 			IEnumerable<RecordDeclarationSyntax> targetClasses = context.Compilation.SyntaxTrees
 				.SelectMany(x => x.GetRoot(ct).DescendantNodes())
 				.OfType<RecordDeclarationSyntax>()
-				.Where(x => x.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == CommandAttributeName)));
+				.Where(x => x.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == Name.VerbAttribute)));
 
 			/*
 			 * Having a static interface makes things easy but it precludes any ability to have options and locks us to later versions of .net
@@ -153,28 +102,57 @@ namespace CmdLine
 				}
 				idEnum.Append("}\n");
 
-				StringBuilder getParserMethod = GenerateGetReaderMethod(indent, semanticModel, target, target.ParameterList);
+				ParamListInfo pli = ParamListInfo.Get(target.ParameterList, semanticModel, context);
 
-				StringBuilder parseMethod = GenerateParseMethod(indent, semanticModel, target, target.ParameterList);
+				Dictionary<string, MethodStuff> paramParseMethods = [];
 
-				indent.Out();
-				StringBuilder sbEnd = new(indent.Val);
-				sbEnd.Append("}\n")
-					.Append("}\n")
-					.Append("#nullable restore");
-
-				StringBuilder sb = new();
-				sb.Append(sbStart);
-				foreach (StringBuilder m in new StringBuilder[] { idEnum, getParserMethod, parseMethod, })
+				foreach (var method in target
+					.DescendantNodes()
+					.OfType<MethodDeclarationSyntax>()
+					.Where(x => x.Identifier.ToString().StartsWith("Parse")))
 				{
-					sb.Append(m);
+					if (method.ReturnType is GenericNameSyntax gns)
+					{
+						TypeArgumentListSyntax tals = gns.DescendantNodes().OfType<TypeArgumentListSyntax>().FirstOrDefault();
+						if (tals.Arguments.Count == 1)
+						{
+							IMethodSymbol symMethod = semanticModel.GetDeclaredSymbol(method) ?? throw new InvalidOperationException("Could not get semantic model for class method: " + method.ToString());
+							if (symMethod.Parameters.Length == 1
+								&& symMethod.Parameters[0].Type.SpecialType == SpecialType.System_String
+								&& symMethod.ReturnType.ContainingNamespace?.Name == "CmdLineNet"
+								&& symMethod.ReturnType.Name == "ParseResult")
+							{
+								// We check the type matches later
+								paramParseMethods[method.Identifier.ToString().Substring(5)] = new(semanticModel.GetTypeInfo(tals.Arguments[0]).Type, symMethod);
+							}
+						}
+					}
 				}
-				sb.Append(sbEnd);
-				string source = sb.ToString();
-				context.AddSource(target.Identifier.ToString() + ".g.cs", SourceText.From(source, Encoding.UTF8));
+
+				StringBuilder? getParserMethod = GenerateGetReaderMethod(indent, semanticModel, target, pli);
+
+				StringBuilder? parseMethod = GenerateParseMethod(indent, semanticModel, target, pli, paramParseMethods);
+				if (getParserMethod != null && parseMethod != null)
+				{
+					indent.Out();
+					StringBuilder sbEnd = new(indent.Val);
+					sbEnd.Append("}\n")
+						.Append("}\n")
+						.Append("#nullable restore");
+
+					StringBuilder sb = new();
+					sb.Append(sbStart);
+					foreach (StringBuilder m in new StringBuilder[] { idEnum, getParserMethod, parseMethod, })
+					{
+						sb.Append(m);
+					}
+					sb.Append(sbEnd);
+					string source = sb.ToString();
+					context.AddSource(target.Identifier.ToString() + ".g.cs", SourceText.From(source, Encoding.UTF8));
+				}
 			}
 		}
-		public StringBuilder GenerateParseMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParameterListSyntax parameterList)
+		public StringBuilder? GenerateParseMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo pli, IReadOnlyDictionary<string, MethodStuff> paramParseMethods)
 		{
 			StringBuilder sb = new(indent.Val);
 			sb.Append("public static ParseResult<").Append(target.Identifier.ToString()).Append("> Parse(IEnumerable<RawArg<Id>> args)\n")
@@ -182,17 +160,29 @@ namespace CmdLine
 
 			indent.In();
 
-			foreach (var p in parameterList.Parameters)
+			foreach (var pi in pli.ParamInfos)
 			{
-				var pSymbol = semanticModel.GetDeclaredSymbol(p);
-				if (pSymbol != null)
+				// TODO if it's a list, then we have to initialize it to an empty list
+				var p = pi.Parameter;
+				sb.Append(indent).Append(FullyQualifiedName(pi.Symbol.Type)).Append("? ").Append(p.Identifier.ToString()).Append(" = ");
+				if (p.Default != null)
 				{
-					sb.Append(indent).Append(FullyQualifiedName(pSymbol.Type)).Append(' ').Append(p.Identifier.ToString()).Append(";\n");
+					// TODO We don't want to bother making this nullable if the parameter has a default value, since it should never be null
+					var defaultSymbol = semanticModel.GetSymbolInfo(p.Default.Value).Symbol;
+					if (defaultSymbol != null)
+					{
+						sb.Append(defaultSymbol.ToString());
+					}
+					else
+					{
+						sb.Append("null");
+					}
 				}
 				else
 				{
-
+					sb.Append("null");
 				}
+				sb.Append(";\n");
 			}
 			sb.Append(indent).Append("foreach (var a in args)\n")
 				.Append(indent).Append("{\n")
@@ -203,39 +193,185 @@ namespace CmdLine
 			indent.In();
 
 			int i = 0;
-			foreach (var p in parameterList.Parameters)
+			foreach (var pi in pli.ParamInfos)
 			{
-				var pSymbol = semanticModel.GetDeclaredSymbol(p);
-				if (pSymbol != null)
-				{
-					sb.Append(indent).Append("case Id.").Append(p.Identifier.ToString()).Append(":\n");
-					indent.In();
+				var p = pi.Parameter;
+				var pSymbol = pi.Symbol;
+				sb.Append(indent).Append("case Id.").Append(p.Identifier.ToString()).Append(":\n");
+				indent.In();
+				ITypeSymbol pType = pSymbol.Type;
 
-					if (pSymbol.Type.SpecialType == SpecialType.System_String)
+				// If the type is Nullable<T>, then we need to get its generic type
+				if (pType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && pType is INamedTypeSymbol nts1 && nts1.TypeArguments.Length == 1)
+				{
+					pType = nts1.TypeArguments[0];
+				}
+
+				// if we have a custom parse method defined, then use that
+				if (paramParseMethods.TryGetValue(p.Identifier.ToString(), out var parseMethod))
+				{
+					if (SymbolEqualityComparer.IncludeNullability.Equals(pType, parseMethod.ReturnType))
 					{
-						sb.Append(indent).Append(p.Identifier.ToString()).Append(" = a.Content;\n");
+						sb.Append(indent).Append("if (").Append(parseMethod.Symbol.Name).Append("(a.Content).Ok(out var v").Append(i).Append(", out var pr").Append(i).Append(")) {")
+							.Append(p.Identifier.ToString()).Append(" = v").Append(i).Append("; }\n");
+
+						sb.Append(indent).Append("else { return pr").Append(i).Append("; }\n");
 					}
 					else
 					{
-						sb.Append(indent).Append("if (").Append(FullyQualifiedName(pSymbol.Type)).Append(".TryParse(a.Content, out var v").Append(i).Append(") ")
-							.Append(p.Identifier.ToString()).Append(" = v").Append(i).Append(";\n");
-
-						sb.Append(indent).Append("else return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content;");
+						// TODO types do not match
 					}
-					sb.Append(indent).Append("break;\n");
-					indent.Out();
 				}
+				else
+				{
+					string? tryParseMethod = null;
+					if (pType.TypeKind == TypeKind.Enum && pType is INamedTypeSymbol nts2)
+					{
+						tryParseMethod = string.Concat("System.Enum.TryParse<", pType.ToString(), ">");
+					}
+					else
+					{
+						switch (pType.SpecialType)
+						{
+							case SpecialType.System_Char:
+								sb.Append(indent).Append("if (a.Content.Length == 1) { ").Append(p.Identifier.ToString()).Append(" = a.Content[0]").Append(i).Append("; }\n");
+								sb.Append(indent).Append("else { return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content; }");
+
+								tryParseMethod = "";
+								break;
+							case SpecialType.System_String:
+								sb.Append(indent).Append(p.Identifier.ToString()).Append(" = a.Content;\n");
+								tryParseMethod = "";
+								break;
+
+							case SpecialType.System_Boolean:
+								tryParseMethod = "bool.TryParse";
+								break;
+
+							case SpecialType.System_SByte:
+								tryParseMethod = "sbyte.TryParse";
+								break;
+							case SpecialType.System_Byte:
+								tryParseMethod = "byte.TryParse";
+								break;
+							case SpecialType.System_Int16:
+								tryParseMethod = "short.TryParse";
+								break;
+							case SpecialType.System_UInt16:
+								tryParseMethod = "ushort.TryParse";
+								break;
+							case SpecialType.System_Int32:
+								tryParseMethod = "int.TryParse";
+								break;
+							case SpecialType.System_UInt32:
+								tryParseMethod = "uint.TryParse";
+								break;
+							case SpecialType.System_Int64:
+								tryParseMethod = "long.TryParse";
+								break;
+							case SpecialType.System_UInt64:
+								tryParseMethod = "ulong.TryParse";
+								break;
+							case SpecialType.System_Decimal:
+								tryParseMethod = "decimal.TryParse";
+								break;
+							case SpecialType.System_Single:
+								tryParseMethod = "float.TryParse";
+								break;
+							case SpecialType.System_Double:
+								tryParseMethod = "double.TryParse";
+								break;
+							case SpecialType.System_DateTime:
+								tryParseMethod = "System.DateTime.TryParse";
+								break;
+
+
+								//case SpecialType.System_Array:
+								//	break;
+								//case SpecialType.System_Collections_Generic_IEnumerable_T:
+								//	break;
+								//case SpecialType.System_Collections_Generic_IList_T:
+								//	break;
+								//case SpecialType.System_Collections_Generic_ICollection_T:
+								//	break;
+								//case SpecialType.System_Collections_Generic_IEnumerator_T:
+								//	break;
+								//case SpecialType.System_Collections_Generic_IReadOnlyList_T:
+								//	break;
+								//case SpecialType.System_Collections_Generic_IReadOnlyCollection_T:
+								//	break;
+						}
+					}
+
+					if (tryParseMethod != null)
+					{
+						// Length of 0 means we took care of it above
+						if (tryParseMethod.Length != 0)
+						{
+							sb.Append(indent).Append("if (").Append(tryParseMethod).Append("(a.Content, out var v").Append(i).Append(") {")
+								.Append(p.Identifier.ToString()).Append(" = v").Append(i).Append("; }\n");
+
+							sb.Append(indent).Append("else { return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content; }\n");
+						}
+					}
+					else
+					{
+						// TODO no parse method was found
+					}
+				}
+
+				sb.Append(indent).Append("break;\n");
+				indent.Out();
 				i++;
 			}
 
 			sb.Append(indent.Out()).Append("}\n")
-				.Append(indent.Out()).Append("}\n")
-				.Append(indent).Append("return new ").Append(target.Identifier.ToString()).Append('(')
-				.Append(string.Join(", ", parameterList.Parameters.Select(x => x.Identifier.ToString()))).Append(");\n")
+				.Append(indent.Out()).Append("}\n");
+
+			foreach (var pi in pli.ParamInfos)
+			{
+				var p = pi.Parameter;
+				bool required = pi.Symbol.Type.NullableAnnotation == NullableAnnotation.NotAnnotated;
+
+				if (required)
+				{
+					string? longName = pi.Expressions.TryGetValue(Name.LongNameProperty, out var longNameSyntax)
+						? longNameSyntax.ToString()
+						: null;
+					string? shortName = pi.Expressions.TryGetValue(Name.ShortNameProperty, out var shortNameSyntax)
+						? shortNameSyntax.ToString()
+						: p.Identifier.ToString();
+
+					sb.Append(indent).Append("if (null == ").Append(p.Identifier.ToString()).Append(')');
+
+					if (longName != null)
+					{
+						if (shortName != null)
+						{
+							sb.Append(" return string.Concat(\"Missing required parameter: -\", ").Append(shortName).Append(", \"|--\", ").Append(longName).Append(");\n");
+						}
+						else
+						{
+							sb.Append(" return string.Concat(\"Missing required parameter: --\", ").Append(longName).Append(");\n");
+						}
+					}
+					else if (shortName != null)
+					{
+						sb.Append(" return string.Concat(\"Missing required parameter: -\", ").Append(shortName).Append(");\n");
+					}
+					else
+					{
+						sb.Append(" return \"Missing required parameter: ").Append(p.Identifier.ToString()).Append("\");\n");
+					}
+				}
+			}
+
+			sb.Append(indent).Append("return new ").Append(target.Identifier.ToString()).Append('(')
+				.Append(string.Join(", ", pli.ParamInfos.Select(x => x.Symbol.Type.IsValueType ? x.Parameter.Identifier.ToString() + ".Value" : x.Parameter.Identifier.ToString()))).Append(");\n")
 				.Append(indent.Out()).Append("}\n");
 			return sb;
 		}
-		public StringBuilder GenerateGetReaderMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParameterListSyntax parameterList)
+		public StringBuilder? GenerateGetReaderMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo parameterInfo)
 		{
 			StringBuilder sb = new(indent.Val);
 			sb.Append("public static ArgsReader<Id> GetReader()\n")
@@ -243,64 +379,43 @@ namespace CmdLine
 				.Append(indent.In()).Append("return new ArgsReaderBuilder<Id>()\n");
 
 			indent.In();
-			List<IParameterSymbol> dtoClassParams = parameterList.Parameters
-				.Select(x => semanticModel.GetDeclaredSymbol(x) ?? throw new InvalidOperationException("Could not get declared symbol for parameter symbol: " + x.ToString()))
-				.ToList();
 
-			foreach (var p in parameterList.Parameters)
+			foreach (var pi in parameterInfo.ParamInfos)
 			{
-				// TODO make sure we only have 1 attribute of switch/value/option
-				AttributeSyntax? attrib = p.AttributeLists
-					.SelectMany(al => al.Attributes)
-					.Where(al => argAttributeNames.Contains(al.Name.ToString()))
-					.FirstOrDefault();
-				if (attrib != null && attrib.ArgumentList != null)
+				var p = pi.Parameter;
+				// Now that we have the thing, we have to set it up
+				switch (pi.AttributeType)
 				{
-					// Now that we have the thing, we have to set it up
-					SeparatedSyntaxList<AttributeArgumentSyntax> args = attrib.ArgumentList.Arguments;
-					Dictionary<string, ExpressionSyntax> nameValues = new(StringComparer.Ordinal);
-					foreach (var a in args)
+					case AttribType.Switch:
+						sb.Append(indent.Val).Append(".Switch(");
+						break;
+					case AttribType.Option:
+						sb.Append(indent.Val).Append(".Option(");
+						break;
+					case AttribType.Value:
+						// TODO Reader has to know about values
+						//sb.Append(indent.Val).Append(".Value()");
+						continue;
+				}
+				sb.Append("Id.").Append(p.Identifier.ToString()).Append(", ");
+				if (pi.Expressions.TryGetValue(Name.ShortNameProperty, out var shortNameSyntax))
+				{
+					if (pi.Expressions.TryGetValue(Name.LongNameProperty, out var longNameSyntax))
 					{
-						var nameIdentifier = a.NameEquals?.Name ?? a.NameColon?.Name;
-						if (nameIdentifier != null)
-						{
-							nameValues[nameIdentifier.ToString()] = a.Expression;
-						}
-					}
-					switch (attrib.Name.ToString())
-					{
-						case SwitchAttributeName:
-							sb.Append(indent.Val).Append(".Switch(");
-							break;
-						case OptionAttributeName:
-							sb.Append(indent.Val).Append(".Option(");
-							break;
-						case ValueAttributeName:
-							continue;
-					}
-					if (nameValues.TryGetValue("ShortName", out var shortNameSyntax))
-					{
-						if (nameValues.TryGetValue("LongName", out var longNameSyntax))
-						{
-							sb.Append(shortNameSyntax.ToString()).Append(", ").Append(longNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
-						}
-						else
-						{
-							sb.Append(shortNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
-						}
-					}
-					else if (nameValues.TryGetValue("LongName", out var longNameSyntax))
-					{
-						sb.Append(longNameSyntax.ToString()).Append(", Id.").Append(p.Identifier.ToString()).Append(")\n");
+						sb.Append(shortNameSyntax.ToString()).Append(", ").Append(longNameSyntax.ToString()).Append(")\n");
 					}
 					else
 					{
-						// TODO error about missing short/long name
+						sb.Append(shortNameSyntax.ToString()).Append(")\n");
 					}
+				}
+				else if (pi.Expressions.TryGetValue(Name.LongNameProperty, out var longNameSyntax))
+				{
+					sb.Append(longNameSyntax.ToString()).Append(")\n");
 				}
 				else
 				{
-
+					// TODO error about missing short/long name if it's a Switch or Option
 				}
 			}
 

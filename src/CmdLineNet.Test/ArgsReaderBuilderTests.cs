@@ -8,18 +8,18 @@ namespace CmdLineNet.Test.ArgsReaderBuilder
 		public static void AllGood()
 		{
 			ArgsReaderBuilder<ArgId> builder = new();
-			builder.Option('a', "alpha", ArgId.A);
-			builder.Option('b', ArgId.B);
-			builder.Option("charlie", ArgId.C);
-			builder.Switch('d', "delta", ArgId.D);
-			builder.Switch('e', ArgId.E);
-			builder.Switch("foxtrot", ArgId.F);
+			builder.Option(ArgId.A, 'a', "alpha", _ => { });
+			builder.Option(ArgId.B, 'b', _ => { });
+			builder.Option(ArgId.C, "charlie", _ => { });
+			builder.Switch(ArgId.D, 'd', "delta", _ => { });
+			builder.Switch(ArgId.E, 'e', _ => { });
+			builder.Switch(ArgId.F, "foxtrot", _ => { });
 
 			CheckDictionaries(builder.ShortOpts, builder.LongOpts);
 			var reader = builder.Build();
 			CheckDictionaries(reader.ShortOpts, reader.LongOpts);
 		}
-		private static void CheckDictionaries(IReadOnlyDictionary<char, ArgMeta<ArgId>> shortOpts, IReadOnlyDictionary<string, ArgMeta<ArgId>> longOpts)
+		private static void CheckDictionaries(IReadOnlyDictionary<char, ArgIdType<ArgId>> shortOpts, IReadOnlyDictionary<string, ArgIdType<ArgId>> longOpts)
 		{
 			CheckMeta(Assert.Contains('a', shortOpts), ArgId.A, ArgType.Option);
 			CheckMeta(Assert.Contains('b', shortOpts), ArgId.B, ArgType.Option);
@@ -35,39 +35,39 @@ namespace CmdLineNet.Test.ArgsReaderBuilder
 		public static void CaseInsensitiveKeys()
 		{
 			ArgsReaderBuilder<ArgId> builder = new(EqualityComparer<char>.Default, StringComparer.OrdinalIgnoreCase);
-			builder.Option("alpha", ArgId.A);
-			Assert.Throws<CmdLineArgumentException>(() => builder.Option("ALPHA", ArgId.A));
+			builder.Option(ArgId.A, "alpha", _ => { });
+			Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "ALPHA", _ => { }));
 		}
 		[Fact]
 		public static void BadKeys()
 		{
 			ArgsReaderBuilder<ArgId> builder = new();
-			builder.Option('a', "alpha", ArgId.A);
+			builder.Option(ArgId.A, 'a', "alpha", _ => { });
 			CmdLineArgumentException ex;
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option('\n', ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option('a', ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option('-', ArgId.A));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, '\n', _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, 'a', _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, '-', _ => { }));
 
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(null!, ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("", ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("   ", ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("a", ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("alpha", ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("-", ArgId.A));
-			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option("--", ArgId.A));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, null!, _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "", _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "   ", _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "a", _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "alpha", _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "-", _ => { }));
+			ex = Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "--", _ => { }));
 
 			// Since both of those failed, we must NOT have added anything to the dictionaries!
-			Assert.DoesNotContain('b', (IDictionary<char, ArgMeta<ArgId>>)builder.ShortOpts);
-			Assert.DoesNotContain("bravo", (IDictionary<string, ArgMeta<ArgId>>)builder.LongOpts);
+			Assert.DoesNotContain('b', (IDictionary<char, ArgIdType<ArgId>>)builder.ShortOpts);
+			Assert.DoesNotContain("bravo", (IDictionary<string, ArgIdType<ArgId>>)builder.LongOpts);
 		}
 		[Fact]
 		public static void OneLetterLongArgument()
 		{
 			ArgsReaderBuilder<ArgId> builder = new();
-			Assert.Throws<CmdLineArgumentException>(() => builder.Option("x", ArgId.A));
-			Assert.Throws<CmdLineArgumentException>(() => builder.Switch("x", ArgId.A));
+			Assert.Throws<CmdLineArgumentException>(() => builder.Option(ArgId.A, "x", _ => { }));
+			Assert.Throws<CmdLineArgumentException>(() => builder.Switch(ArgId.A, "x", _ => { }));
 		}
-		private static void CheckMeta(ArgMeta<ArgId> meta, ArgId id, ArgType type)
+		private static void CheckMeta(ArgIdType<ArgId> meta, ArgId id, ArgType type)
 		{
 			Assert.Equal(id, meta.Id);
 			Assert.Equal(type, meta.Type);

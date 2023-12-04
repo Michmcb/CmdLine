@@ -89,12 +89,12 @@
 		[Fact]
 		public static void BadArgTypeEnum()
 		{
-			ArgsReader<ArgId> reader = new(new Dictionary<char, ArgMeta<ArgId>>()
+			ArgsReader<ArgId> reader = new(new Dictionary<char, ArgIdType<ArgId>>()
 			{
-				['o'] = new ArgMeta<ArgId>(ArgId.B, (ArgType)99999),
-			}, new Dictionary<string, ArgMeta<ArgId>>()
+				['o'] = new ArgIdType<ArgId>(ArgId.B, (ArgType)99999),
+			}, new Dictionary<string, ArgIdType<ArgId>>()
 			{
-				["opt"] = new ArgMeta<ArgId>(ArgId.A, (ArgType)99999),
+				["opt"] = new ArgIdType<ArgId>(ArgId.A, (ArgType)99999),
 			});
 			Assert.Collection(reader.Read(new string[] { "-o" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"-o\": 99999", ArgState.OtherError));
 			Assert.Collection(reader.Read(new string[] { "--opt" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"--opt\": 99999", ArgState.OtherError));
