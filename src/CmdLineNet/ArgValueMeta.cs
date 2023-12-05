@@ -1,15 +1,14 @@
 ﻿namespace CmdLineNet
 {
 	/// <summary>
-	/// Holds an option or switch argument's ID and other information about it.
+	/// Holds a value argument's ID and the maximum/minimum number of times it may appear.
 	/// </summary>
 	/// <typeparam name="TId">The type of the ID.</typeparam>
-	public sealed class ArgMeta<TId> where TId : struct
+	public sealed class ArgValueMeta<TId> where TId : struct
 	{
-		public ArgMeta(TId id, ArgType type, int min, int max, string? help)
+		public ArgValueMeta(TId id, int min, int max, string? help)
 		{
 			Id = id;
-			Type = type;
 			Min = min;
 			Max = max;
 			Help = help;
@@ -18,10 +17,6 @@
 		/// The ID for this argument.
 		/// </summary>
 		public TId Id { get; }
-		/// <summary>
-		/// The type of this argument.
-		/// </summary>
-		public ArgType Type { get; }
 		/// <summary>
 		/// The minimum number of times this argument may appear.
 		/// </summary>

@@ -47,5 +47,17 @@
 		/// For example, if -o is an option, and -s is a switch, "-so" was provided.
 		/// </summary>
 		ShortOptionFoundInStackedSwitches,
+		/// <summary>
+		/// An option was encountered more than the maximum number of times it is allowed to occur.
+		/// </summary>
+		TooManyOptions,
+		/// <summary>
+		/// A switch was encountered more than the maximum number of times it is allowed to occur.
+		/// </summary>
+		TooManySwitches,
+		/// <summary>
+		/// A value was encountered more than the maximum number of times it is allowed to occur.
+		/// </summary>
+		TooManyValues,
 	}
 }

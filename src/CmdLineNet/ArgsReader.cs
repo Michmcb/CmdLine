@@ -1,6 +1,8 @@
 ﻿namespace CmdLineNet
 {
+	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	/// <summary>
 	/// A parser which reads an <see cref="IEnumerable{T}"/> of <see cref="string"/>, and produces <see cref="RawArg{TId}"/>.
 	/// </summary>
@@ -8,23 +10,29 @@
 	public sealed class ArgsReader<TId> where TId : struct
 	{
 		/// <summary>
-		/// Creates a new instance which is configured to recognize arguments identified by <paramref name="shortOpts"/> and <paramref name="longOpts"/>.
+		/// Creates a new instance which is configured to recognize arguments identified by <paramref name="shortArgs"/> and <paramref name="longArgs"/>.
 		/// </summary>
-		/// <param name="shortOpts">The short form of arguments.</param>
-		/// <param name="longOpts">The long form of arguments. Keys must NOT have leading --./param>
-		public ArgsReader(IReadOnlyDictionary<char, ArgIdType<TId>> shortOpts, IReadOnlyDictionary<string, ArgIdType<TId>> longOpts)
+		/// <param name="shortArgs">The short form of arguments.</param>
+		/// <param name="longArgs">The long form of arguments. Keys must NOT have leading --.</param>
+		/// <param name="values">The values.</param>
+		public ArgsReader(IReadOnlyDictionary<char, ArgMeta<TId>> shortArgs, IReadOnlyDictionary<string, ArgMeta<TId>> longArgs, IReadOnlyCollection<ArgValueMeta<TId>> values)
 		{
-			ShortOpts = shortOpts;
-			LongOpts = longOpts;
+			ShortArgs = shortArgs;
+			LongArgs = longArgs;
+			Values = values;
 		}
 		/// <summary>
-		/// All of the short-form options.
+		/// All of the short-form arguments.
 		/// </summary>
-		public IReadOnlyDictionary<char, ArgIdType<TId>> ShortOpts { get; }
+		public IReadOnlyDictionary<char, ArgMeta<TId>> ShortArgs { get; }
 		/// <summary>
-		/// All of the long-form options.
+		/// All of the long-form arguments.
 		/// </summary>
-		public IReadOnlyDictionary<string, ArgIdType<TId>> LongOpts { get; }
+		public IReadOnlyDictionary<string, ArgMeta<TId>> LongArgs { get; }
+		/// <summary>
+		/// All of the values.
+		/// </summary>
+		public IReadOnlyCollection<ArgValueMeta<TId>> Values { get; }
 		/// <summary>
 		/// Reads <paramref name="args"/> and produces <see cref="RawArg{TId}"/>.
 		/// </summary>
@@ -45,9 +53,36 @@
 		/// <returns>The arguments</returns>
 		public IEnumerable<RawArg<TId>> Read(IEnumerator<string> args)
 		{
-			// TODO we need a way for the reader to enforce the arity of values, options, and switches (if this is the correct place for that)
 			// TODO we need a way for the reader to enforce some arguments being mutually exclusive (if this is the correct place for that)
 			// http://docopt.org/
+			List<ArgCount<TId>> valueArgs = new(Values.Count);
+			valueArgs.AddRange(Values.Select(x => new ArgCount<TId>(x)));
+			using IEnumerator<ArgCount<TId>> vEnum = new DuplicatingValuesEnumerator<TId>(valueArgs.GetEnumerator());
+
+			// TODO if the enum starts from 0 and is contiguous, then we can do a sneaky trick here, and just have an array, indexing into it by using TId as an integer index
+		//public Func<IEnumerable<ArgMeta<TId>>, IReadOnlyDictionary<TId, ArgCountable<TId>>> GetStuff { get; }
+			Dictionary<char, ArgCountable<TId>> shortArgs = new();
+			Dictionary<string, ArgCountable<TId>> longArgs = new();
+			{
+				Dictionary<TId, ArgCountable<TId>> dict = new();
+				foreach (var v in ShortArgs.Values)
+				{
+					dict[v.Id] = new ArgCountable<TId>(v.Id, v.Type, v.Max);
+				}
+				foreach (var v in LongArgs.Values)
+				{
+					dict[v.Id] = new ArgCountable<TId>(v.Id, v.Type, v.Max);
+				}
+				foreach (var kvp in ShortArgs)
+				{
+					shortArgs[kvp.Key] = dict[kvp.Value.Id];
+				}
+				foreach (var kvp in LongArgs)
+				{
+					longArgs[kvp.Key] = dict[kvp.Value.Id];
+				}
+			}
+
 			while (args.MoveNext())
 			{
 				string s = args.Current;
@@ -58,24 +93,41 @@
 						// It's "--" so treat the rest as values
 						while (args.MoveNext())
 						{
-							yield return new(default, args.Current, ArgState.Value);
+							yield return vEnum.MoveNext()
+								? new(vEnum.Current.Id, args.Current, ArgState.Value)
+								: new(default, "Too many values were provided: " + args.Current, ArgState.TooManyValues);
 						}
 					}
 					else
 					{
 						// Long switch or option
-						string option = s[2..];
-						if (LongOpts.TryGetValue(option, out ArgIdType<TId> which))
+						string arg = s[2..];
+						if (longArgs.TryGetValue(arg, out var which))
 						{
 							switch (which.Type)
 							{
 								case ArgType.Switch:
-									yield return new(which.Id, string.Empty, ArgState.LongSwitch);
+									if (++which.Count > which.Max)
+									{
+										yield return new(which.Id, "Switch was provided too many times: " + s, ArgState.TooManySwitches);
+									}
+									else
+									{
+										yield return new(which.Id, string.Empty, ArgState.LongSwitch);
+									}
 									break;
 								case ArgType.Option:
-									yield return args.MoveNext()
-										? new(which.Id, args.Current, ArgState.LongOption)
-										: new(which.Id, string.Empty, ArgState.LongOption);
+									if (++which.Count > which.Max)
+									{
+										args.MoveNext(); // Skip the option's value
+										yield return new(which.Id, "Option was provided too many times: " + s, ArgState.TooManyOptions);
+									}
+									else
+									{
+										yield return args.MoveNext()
+											? new(which.Id, args.Current, ArgState.LongOption)
+											: new(which.Id, string.Empty, ArgState.LongOption);
+									}
 									break;
 								default:
 									yield return new(default, string.Concat("ArgType enum value was not valid for argument \"", s, "\": ", ((int)which.Type).ToString()), ArgState.OtherError);
@@ -93,23 +145,40 @@
 					if (s.Length == 1)
 					{
 						// Lone dash
-						yield return new(default, s, ArgState.Value);
+						yield return vEnum.MoveNext()
+							? new(vEnum.Current.Id, s, ArgState.Value)
+							: new(default, "Too many values were provided: " + s, ArgState.TooManyValues);
 					}
 					else if (s.Length == 2)
 					{
 						// Short switch or option
 						char c = s[1];
-						if (ShortOpts.TryGetValue(c, out ArgIdType<TId> which))
+						if (shortArgs.TryGetValue(c, out var which))
 						{
 							switch (which.Type)
 							{
 								case ArgType.Switch:
-									yield return new(which.Id, string.Empty, ArgState.ShortSwitch);
+									if (++which.Count > which.Max)
+									{
+										yield return new(which.Id, "Switch was provided too many times: " + s, ArgState.TooManySwitches);
+									}
+									else
+									{
+										yield return new(which.Id, string.Empty, ArgState.ShortSwitch);
+									}
 									break;
 								case ArgType.Option:
-									yield return args.MoveNext()
-										? new(which.Id, args.Current, ArgState.ShortOption)
-										: new(which.Id, string.Empty, ArgState.ShortOption);
+									if (++which.Count > which.Max)
+									{
+										args.MoveNext(); // Skip the option's value
+										yield return new(which.Id, "Option was provided too many times: " + s, ArgState.TooManyOptions);
+									}
+									else
+									{
+										yield return args.MoveNext()
+											? new(which.Id, args.Current, ArgState.ShortOption)
+											: new(which.Id, string.Empty, ArgState.ShortOption);
+									}
 									break;
 								default:
 									yield return new(default, string.Concat("ArgType enum value was not valid for argument \"", s, "\": ", ((int)which.Type).ToString()), ArgState.OtherError);
@@ -126,11 +195,18 @@
 						// Stacked switches
 						foreach (char c in s[1..])
 						{
-							if (ShortOpts.TryGetValue(c, out ArgIdType<TId> which))
+							if (shortArgs.TryGetValue(c, out var which))
 							{
-								yield return which.Type == ArgType.Switch
+								if (++which.Count > which.Max)
+								{
+									yield return new(which.Id, MakeStr("Switch was provided too many times in stacked switches: ", c), ArgState.TooManySwitches);
+								}
+								else
+								{
+									yield return which.Type == ArgType.Switch
 									? new(which.Id, string.Empty, ArgState.StackedSwitch)
 									: new(which.Id, MakeStr("A short option was found in stacked switches: ", c), ArgState.ShortOptionFoundInStackedSwitches);
+								}
 							}
 							else
 							{
@@ -142,7 +218,9 @@
 				else
 				{
 					// Value
-					yield return new(default, s, ArgState.Value);
+					yield return vEnum.MoveNext()
+						? new(vEnum.Current.Id, s, ArgState.Value)
+						: new(default, "Too many values were provided: " + s, ArgState.TooManyValues);
 				}
 			}
 		}

@@ -29,11 +29,11 @@
 			Assert.Collection(Args.GetReader().Read(args),
 				x => CheckArg(x, ArgId.A, "alpha value", ArgState.ShortOption),
 				x => CheckArg(x, ArgId.B, "bravo value", ArgState.LongOption),
-				x => CheckArg(x, default, "lone value", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "lone value", ArgState.Value),
 				x => CheckArg(x, ArgId.E, string.Empty, ArgState.LongSwitch),
 				x => CheckArg(x, ArgId.D, string.Empty, ArgState.ShortSwitch),
-				x => CheckArg(x, default, "some value", ArgState.Value),
-				x => CheckArg(x, default, "some other value", ArgState.Value)
+				x => CheckArg(x, ArgId.V, "some value", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "some other value", ArgState.Value)
 			);
 		}
 		[Fact]
@@ -52,23 +52,94 @@
 			string[] args = new string[] { "-a", "alpha value", "--", "-a", "-b", "-c", "value" };
 			Assert.Collection(Args.GetReader().Read(args),
 				x => CheckArg(x, ArgId.A, "alpha value", ArgState.ShortOption),
-				x => CheckArg(x, default, "-a", ArgState.Value),
-				x => CheckArg(x, default, "-b", ArgState.Value),
-				x => CheckArg(x, default, "-c", ArgState.Value),
-				x => CheckArg(x, default, "value", ArgState.Value)
+				x => CheckArg(x, ArgId.V, "-a", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "-b", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "-c", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "value", ArgState.Value)
 			);
 		}
 		[Fact]
 		public static void LoneDash()
 		{
 			string[] args = new string[] { "-" };
-			Assert.Collection(Args.GetReader().Read(args), x => CheckArg(x, default, "-", ArgState.Value));
+			Assert.Collection(Args.GetReader().Read(args), x => CheckArg(x, ArgId.V, "-", ArgState.Value));
 		}
 		[Fact]
 		public static void OptionFollowedByNothingIsNull()
 		{
 			Assert.Collection(Args.GetReader().Read(new string[] { "-a" }), x => CheckArg(x, ArgId.A, string.Empty, ArgState.ShortOption));
 			Assert.Collection(Args.GetReader().Read(new string[] { "--alpha" }), x => CheckArg(x, ArgId.A, string.Empty, ArgState.LongOption));
+		}
+		[Fact]
+		public static void TooManyShortOptions()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "-a", "blah", "-a", "blah" }),
+				x => CheckArg(x, ArgId.A, "blah", ArgState.ShortOption),
+				x => CheckArg(x, ArgId.A, "Option was provided too many times: -a", ArgState.TooManyOptions));
+		}
+		[Fact]
+		public static void TooManyLongOptions()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "--alpha", "blah", "--alpha", "blah" }),
+				x => CheckArg(x, ArgId.A, "blah", ArgState.LongOption),
+				x => CheckArg(x, ArgId.A, "Option was provided too many times: --alpha", ArgState.TooManyOptions));
+		}
+		[Fact]
+		public static void TooManyOptions()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "--alpha", "blah", "-a", "blah" }),
+				x => CheckArg(x, ArgId.A, "blah", ArgState.LongOption),
+				x => CheckArg(x, ArgId.A, "Option was provided too many times: -a", ArgState.TooManyOptions));
+		}
+		[Fact]
+		public static void TooManyShortSwitches()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "-d", "-d" }),
+				x => CheckArg(x, ArgId.D, "", ArgState.ShortSwitch),
+				x => CheckArg(x, ArgId.D, "Switch was provided too many times: -d", ArgState.TooManySwitches));
+		}
+		[Fact]
+		public static void TooManyShortStackedSwitches()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "-dd", }),
+				x => CheckArg(x, ArgId.D, "", ArgState.StackedSwitch),
+				x => CheckArg(x, ArgId.D, "Switch was provided too many times in stacked switches: d", ArgState.TooManySwitches));
+		}
+		[Fact]
+		public static void TooManySwitches()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "-d", "--delta" }),
+				x => CheckArg(x, ArgId.D, "", ArgState.ShortSwitch),
+				x => CheckArg(x, ArgId.D, "Switch was provided too many times: --delta", ArgState.TooManySwitches));
+		}
+		[Fact]
+		public static void TooManyLongSwitches()
+		{
+			Assert.Collection(Args.GetReader().Read(new string[] { "--delta", "--delta" }),
+				x => CheckArg(x, ArgId.D, "", ArgState.LongSwitch),
+				x => CheckArg(x, ArgId.D, "Switch was provided too many times: --delta", ArgState.TooManySwitches));
+		}
+		[Fact]
+		public static void TooManyValues()
+		{
+			var r = new ArgsReaderBuilder<ArgId>()
+				.Value(ArgId.V, 0, 2)
+				.Build();
+
+			Assert.Collection(r.Read(new string[] { "value1", "value2", "value3" }),
+				x => CheckArg(x, ArgId.V, "value1", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "value2", ArgState.Value),
+				x => CheckArg(x, default, "Too many values were provided: value3", ArgState.TooManyValues));
+
+			Assert.Collection(r.Read(new string[] { "-", "-", "-" }),
+				x => CheckArg(x, ArgId.V, "-", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "-", ArgState.Value),
+				x => CheckArg(x, default, "Too many values were provided: -", ArgState.TooManyValues));
+
+			Assert.Collection(r.Read(new string[] { "--", "value1", "value2", "value3" }),
+				x => CheckArg(x, ArgId.V, "value1", ArgState.Value),
+				x => CheckArg(x, ArgId.V, "value2", ArgState.Value),
+				x => CheckArg(x, default, "Too many values were provided: value3", ArgState.TooManyValues));
 		}
 		[Fact]
 		public static void Unrecognized()
@@ -89,13 +160,13 @@
 		[Fact]
 		public static void BadArgTypeEnum()
 		{
-			ArgsReader<ArgId> reader = new(new Dictionary<char, ArgIdType<ArgId>>()
+			ArgsReader<ArgId> reader = new(new Dictionary<char, ArgMeta<ArgId>>()
 			{
-				['o'] = new ArgIdType<ArgId>(ArgId.B, (ArgType)99999),
-			}, new Dictionary<string, ArgIdType<ArgId>>()
+				['o'] = new ArgMeta<ArgId>(ArgId.B, (ArgType)99999, 1, 1, null),
+			}, new Dictionary<string, ArgMeta<ArgId>>()
 			{
-				["opt"] = new ArgIdType<ArgId>(ArgId.A, (ArgType)99999),
-			});
+				["opt"] = new ArgMeta<ArgId>(ArgId.A, (ArgType)99999, 1, 1, null),
+			}, Array.Empty<ArgValueMeta<ArgId>>());
 			Assert.Collection(reader.Read(new string[] { "-o" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"-o\": 99999", ArgState.OtherError));
 			Assert.Collection(reader.Read(new string[] { "--opt" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"--opt\": 99999", ArgState.OtherError));
 		}

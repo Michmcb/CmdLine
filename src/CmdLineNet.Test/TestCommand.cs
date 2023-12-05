@@ -2,7 +2,8 @@
 {
 	[Verb]
 	public sealed partial record class TestCommand(
-		[Option(LongName = "value", ShortName = 'v')] string? Value,
+		[Option(LongName = "value", ShortName = 'v')] string? OptionalValue,
+		[Option(LongName = "xylophone", ShortName = 'x')] string RequiredValue,
 		[Option(LongName = "intvalue", ShortName = 'i')] DateTimeKind Value2 = DateTimeKind.Utc)
 	{
 		public static ParseResult<DateTimeKind> ParseValue2(string raw)

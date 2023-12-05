@@ -1,4 +1,4 @@
 ﻿namespace CmdLineNet.Test.ArgsReaderBuilder
 {
-	public enum ArgId { A, B, C, D, E, F }
+	public enum ArgId { A, B, C, D, E, F, V }
 }
