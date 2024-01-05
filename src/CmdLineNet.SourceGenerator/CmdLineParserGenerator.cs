@@ -18,7 +18,7 @@
 #if DEBUG
 			if (!System.Diagnostics.Debugger.IsAttached)
 			{
-				//System.Diagnostics.Debugger.Launch();
+				System.Diagnostics.Debugger.Launch();
 			}
 #endif
 		}
@@ -128,9 +128,9 @@
 					}
 				}
 
-				StringBuilder? getParserMethod = GenerateGetReaderMethod(indent, semanticModel, target, pli);
+				StringBuilder? getParserMethod = GenerateGetReaderMethod(indent, context, semanticModel, target, pli);
 
-				StringBuilder? parseMethod = GenerateParseMethod(indent, semanticModel, target, pli, paramParseMethods);
+				StringBuilder? parseMethod = GenerateParseMethod(indent, context, semanticModel, target, pli, paramParseMethods);
 				if (getParserMethod != null && parseMethod != null)
 				{
 					indent.Out();
@@ -151,7 +151,7 @@
 				}
 			}
 		}
-		public StringBuilder? GenerateParseMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo pli, IReadOnlyDictionary<string, MethodStuff> paramParseMethods)
+		public StringBuilder? GenerateParseMethod(Indent indent, GeneratorExecutionContext context, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo pli, IReadOnlyDictionary<string, MethodStuff> paramParseMethods)
 		{
 			StringBuilder sb = new(indent.Val);
 			sb.Append("public static ParseResult<").Append(target.Identifier.ToString()).Append("> Parse(IEnumerable<RawArg<Id>> args)\n")
@@ -161,18 +161,45 @@
 
 			foreach (var pi in pli.ParamInfos)
 			{
-				// TODO if it's a collection type, then we have to initialize it to an empty list
 				var p = pi.Parameter;
-				sb.Append(indent).Append(FullyQualifiedName(pi.Symbol.Type));
-				if (pi.DefaultValueSymbol != null)
+				if (pi.IsCollection)
 				{
-					sb.Append(" ").Append(p.Identifier.ToString()).Append(" = ").Append(pi.DefaultValueSymbol.ToString());
+					sb.Append(indent).Append("System.Collections.Generic.List<").Append(FullyQualifiedName(pi.ElementTypeSymbol)).Append("> ")
+						.Append(p.Identifier.ToString()).Append(" = new System.Collections.Generic.List<").Append(FullyQualifiedName(pi.ElementTypeSymbol)).Append(">();\n");
+					if (pi.DefaultValueSymbol != null)
+					{
+						// TODO warning about default value being ignored
+					}
 				}
 				else
 				{
-					sb.Append("? ").Append(p.Identifier.ToString()).Append(" = ").Append("null");
+					// If it's a switch it is never nullable; it's always either false or zero (for switches which can be specified multiple times)
+					sb.Append(indent).Append(FullyQualifiedName(pi.Symbol.Type));
+					if (pi.AttributeType == AttribType.Switch)
+					{
+						sb.Append(' ').Append(p.Identifier.ToString()).Append(" = ");
+						if (pi.DefaultValueSymbol != null)
+						{
+							sb.Append(pi.DefaultValueSymbol.ToString());
+						}
+						else
+						{
+							sb.Append("default");
+						}
+					}
+					else
+					{
+						if (pi.DefaultValueSymbol != null)
+						{
+							sb.Append(' ').Append(p.Identifier.ToString()).Append(" = ").Append(pi.DefaultValueSymbol.ToString());
+						}
+						else
+						{
+							sb.Append("? ").Append(p.Identifier.ToString()).Append(" = ").Append("null");
+						}
+					}
+					sb.Append(";\n");
 				}
-				sb.Append(";\n");
 			}
 			sb.Append(indent).Append("foreach (var a in args)\n")
 				.Append(indent).Append("{\n")
@@ -185,6 +212,11 @@
 			int i = 0;
 			foreach (var pi in pli.ParamInfos)
 			{
+				if (pi.IsCollection && pi.AttributeType == AttribType.Switch)
+				{
+					// TODO Collection and switch incompatible
+				}
+
 				var p = pi.Parameter;
 				var pSymbol = pi.Symbol;
 				sb.Append(indent).Append("case Id.").Append(p.Identifier.ToString()).Append(":\n");
@@ -198,7 +230,7 @@
 				}
 
 				// if we have a custom parse method defined, then use that
-				if (paramParseMethods.TryGetValue(p.Identifier.ToString(), out var parseMethod))
+				if (paramParseMethods.TryGetValue(pType.Name, out var parseMethod))
 				{
 					if (SymbolEqualityComparer.IncludeNullability.Equals(pType, parseMethod.ReturnType))
 					{
@@ -212,99 +244,189 @@
 						// TODO types do not match
 					}
 				}
+
+				string? tryParseMethod = null;
+				if (pi.ElementTypeSymbol.TypeKind == TypeKind.Enum && pi.ElementTypeSymbol is INamedTypeSymbol nts2)
+				{
+					tryParseMethod = string.Concat("System.Enum.TryParse<", pi.ElementTypeSymbol.ToString(), ">");
+				}
 				else
 				{
-					string? tryParseMethod = null;
-					if (pType.TypeKind == TypeKind.Enum && pType is INamedTypeSymbol nts2)
+					switch (pi.ElementTypeSymbol.SpecialType)
 					{
-						tryParseMethod = string.Concat("System.Enum.TryParse<", pType.ToString(), ">");
-					}
-					else
-					{
-						switch (pType.SpecialType)
-						{
-							case SpecialType.System_Char:
-								sb.Append(indent).Append("if (a.Content.Length == 1) { ").Append(p.Identifier.ToString()).Append(" = a.Content[0]").Append(i).Append("; }\n");
-								sb.Append(indent).Append("else { return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content; }");
-								tryParseMethod = "";
-								break;
-							case SpecialType.System_String:
+						case SpecialType.System_Char:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								// TODO incompatible
+							}
+							else
+							{
+								tryParseMethod = "char.TryParse";
+							}
+							break;
+						case SpecialType.System_String:
+							if (pi.IsCollection)
+							{
+								sb.Append(indent).Append(p.Identifier.ToString()).Append(".Add(a.Content);\n");
+							}
+							else
+							{
 								sb.Append(indent).Append(p.Identifier.ToString()).Append(" = a.Content;\n");
+							}
+							tryParseMethod = "";
+							break;
+						case SpecialType.System_Boolean:
+							if (pi.AttributeType == AttribType.Switch)
+							{
 								tryParseMethod = "";
-								break;
-							case SpecialType.System_Boolean:
+								sb.Append(indent).Append(p.Identifier.ToString()).Append(" = true;\n");
+							}
+							else
+							{
 								tryParseMethod = "bool.TryParse";
-								break;
-							case SpecialType.System_SByte:
+							}
+							break;
+						case SpecialType.System_SByte:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "sbyte.TryParse";
-								break;
-							case SpecialType.System_Byte:
+							}
+							break;
+						case SpecialType.System_Byte:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "byte.TryParse";
-								break;
-							case SpecialType.System_Int16:
+							}
+							break;
+						case SpecialType.System_Int16:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "short.TryParse";
-								break;
-							case SpecialType.System_UInt16:
+							}
+							break;
+						case SpecialType.System_UInt16:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "ushort.TryParse";
-								break;
-							case SpecialType.System_Int32:
+							}
+							break;
+						case SpecialType.System_Int32:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "int.TryParse";
-								break;
-							case SpecialType.System_UInt32:
+							}
+							break;
+						case SpecialType.System_UInt32:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "uint.TryParse";
-								break;
-							case SpecialType.System_Int64:
+							}
+							break;
+						case SpecialType.System_Int64:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "long.TryParse";
-								break;
-							case SpecialType.System_UInt64:
+							}
+							break;
+						case SpecialType.System_UInt64:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								tryParseMethod = "";
+								sb.Append(indent).Append(p.Identifier.ToString()).Append("++;\n");
+							}
+							else
+							{
 								tryParseMethod = "ulong.TryParse";
-								break;
-							case SpecialType.System_Decimal:
-								tryParseMethod = "decimal.TryParse";
-								break;
-							case SpecialType.System_Single:
-								tryParseMethod = "float.TryParse";
-								break;
-							case SpecialType.System_Double:
-								tryParseMethod = "double.TryParse";
-								break;
-							case SpecialType.System_DateTime:
-								tryParseMethod = "System.DateTime.TryParse";
-								break;
-
-
-								//case SpecialType.System_Array:
-								//	break;
-								//case SpecialType.System_Collections_Generic_IEnumerable_T:
-								//	break;
-								//case SpecialType.System_Collections_Generic_IList_T:
-								//	break;
-								//case SpecialType.System_Collections_Generic_ICollection_T:
-								//	break;
-								//case SpecialType.System_Collections_Generic_IEnumerator_T:
-								//	break;
-								//case SpecialType.System_Collections_Generic_IReadOnlyList_T:
-								//	break;
-								//case SpecialType.System_Collections_Generic_IReadOnlyCollection_T:
-								//	break;
-						}
+							}
+							break;
+						case SpecialType.System_Decimal:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								// TODO incompatible
+							}
+							tryParseMethod = "decimal.TryParse";
+							break;
+						case SpecialType.System_Single:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								// TODO incompatible
+							}
+							tryParseMethod = "float.TryParse";
+							break;
+						case SpecialType.System_Double:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								// TODO incompatible
+							}
+							tryParseMethod = "double.TryParse";
+							break;
+						case SpecialType.System_DateTime:
+							if (pi.AttributeType == AttribType.Switch)
+							{
+								// TODO incompatible (dude wtf, seriously?)
+							}
+							tryParseMethod = "System.DateTime.TryParse";
+							break;
 					}
+				}
 
-					if (tryParseMethod != null)
+				if (tryParseMethod != null)
+				{
+					// Length of 0 means no parsing is required
+					if (tryParseMethod.Length != 0)
 					{
-						// Length of 0 means we took care of it above
-						if (tryParseMethod.Length != 0)
+						sb.Append(indent).Append("if (").Append(tryParseMethod).Append("(a.Content, out var v").Append(i).Append(")) {").Append(p.Identifier.ToString());
+
+						if (pi.IsCollection)
 						{
-							sb.Append(indent).Append("if (").Append(tryParseMethod).Append("(a.Content, out var v").Append(i).Append(") {")
-								.Append(p.Identifier.ToString()).Append(" = v").Append(i).Append("; }\n");
-
-							sb.Append(indent).Append("else { return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content; }\n");
+							sb.Append(".Add(v").Append(i).Append("); }\n");
 						}
+						else
+						{
+							sb.Append(" = v").Append(i).Append("; }\n");
+						}
+
+						sb.Append(indent).Append("else { return \"Unable to parse as ").Append(FullyQualifiedName(pSymbol.Type)).Append(": \" + a.Content; }\n");
 					}
-					else
-					{
-						// TODO no parse method was found
-					}
+				}
+				else
+				{
+					// TODO no parse method was found
 				}
 
 				sb.Append(indent).Append("break;\n");
@@ -319,6 +441,10 @@
 			{
 				var p = pi.Parameter;
 				bool required = pi.Symbol.Type.NullableAnnotation == NullableAnnotation.NotAnnotated;
+
+				string collectionPropertyName = pi.IsArray ? ".Length" : ".Count";
+
+				// TODO If there's min/max properties, make sure that the count adheres to it, whether or not it's required. 
 
 				if (required)
 				{
@@ -352,13 +478,22 @@
 					}
 				}
 			}
-
 			sb.Append(indent).Append("return new ").Append(target.Identifier.ToString()).Append('(')
-				.Append(string.Join(", ", pli.ParamInfos.Select(x => (x.Symbol.Type.IsValueType && x.DefaultValueSymbol == null) ? x.Parameter.Identifier.ToString() + ".Value" : x.Parameter.Identifier.ToString()))).Append(");\n")
+				.Append(string.Join(", ", pli.ParamInfos.Select(x =>
+				{
+					if (x.IsCollection && x.IsArray)
+					{
+						return string.Concat("System.Linq.Enumerable.ToArray(", x.Parameter.Identifier.ToString(), ")");
+					}
+					else
+					{
+						return (x.Symbol.Type.IsValueType && x.DefaultValueSymbol == null) ? x.Parameter.Identifier.ToString() + ".Value" : x.Parameter.Identifier.ToString();
+					}
+				}))).Append(");\n")
 				.Append(indent.Out()).Append("}\n");
 			return sb;
 		}
-		public StringBuilder? GenerateGetReaderMethod(Indent indent, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo parameterInfo)
+		public StringBuilder? GenerateGetReaderMethod(Indent indent, GeneratorExecutionContext context, SemanticModel semanticModel, TypeDeclarationSyntax target, ParamListInfo parameterInfo)
 		{
 			StringBuilder sb = new(indent.Val);
 			sb.Append("public static ArgsReader<Id> GetReader()\n")
@@ -381,6 +516,11 @@
 						break;
 					case AttribType.Value:
 						sb.Append(indent.Val).Append(".Value()");
+						continue;
+					default:
+						context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(id: "CL0004", title: "Parameter missing type attribute",
+						messageFormat: "Parameter {0} must have a Switch/Option/Value attribute on it.",
+						"category", DiagnosticSeverity.Error, isEnabledByDefault: true), Location.Create(p.SyntaxTree, p.Span), p.Identifier.ToString()));
 						continue;
 				}
 				sb.Append("Id.").Append(p.Identifier.ToString()).Append(", ");
