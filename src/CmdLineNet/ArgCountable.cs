@@ -25,7 +25,7 @@
 		/// </summary>
 		public int Max { get; }
 		/// <summary>
-		/// The number of times <see cref="Arg"/> has been seen.
+		/// The number of times this argument has been seen.
 		/// </summary>
 		public int Count { get; set; }
 	}
