@@ -5,13 +5,13 @@
 	public sealed record class Args(string A, string B, string C, bool D, bool E, bool F) : ICmdParseable<ArgId, Args>
 	{
 		private static readonly ArgsReader<ArgId> reader = new ArgsReaderBuilder<ArgId>()
-			.Option(ArgId.A, 'a', "alpha", 1, 1)
-			.Option(ArgId.B, 'b', "bravo", 1, 1)
-			.Option(ArgId.C, 'c', "charlie", 1, 1)
-			.Switch(ArgId.D, 'd', "delta", 1, 1)
-			.Switch(ArgId.E, 'e', "echo", 1, 1)
-			.Switch(ArgId.F, 'f', "foxtrot", 1, 1)
-			.Value(ArgId.V, 0, int.MaxValue)
+			.Option(ArgId.A, 'a', "alpha", 1, 1, null)
+			.Option(ArgId.B, 'b', "bravo", 1, 1, null)
+			.Option(ArgId.C, 'c', "charlie", 1, 1, null)
+			.Switch(ArgId.D, 'd', "delta", 1, 1, null)
+			.Switch(ArgId.E, 'e', "echo", 1, 1, null)
+			.Switch(ArgId.F, 'f', "foxtrot", 1, 1, null)
+			.Value(ArgId.V, 0, int.MaxValue, null)
 			.Build();
 		public static ArgsReader<ArgId> GetReader()
 		{

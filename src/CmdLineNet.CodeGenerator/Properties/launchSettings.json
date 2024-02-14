@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CmdLineNet.CodeGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "test.ini"
+    }
+  }
+}

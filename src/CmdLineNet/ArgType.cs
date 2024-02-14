@@ -7,5 +7,6 @@
 	{
 		Switch,
 		Option,
+		Value,
 	}
 }

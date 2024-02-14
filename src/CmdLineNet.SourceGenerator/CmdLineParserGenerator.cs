@@ -15,12 +15,12 @@
 
 		public void Initialize(GeneratorInitializationContext context)
 		{
-#if DEBUG
-			if (!System.Diagnostics.Debugger.IsAttached)
-			{
-				System.Diagnostics.Debugger.Launch();
-			}
-#endif
+//#if DEBUG
+//			if (!System.Diagnostics.Debugger.IsAttached)
+//			{
+//				System.Diagnostics.Debugger.Launch();
+//			}
+//#endif
 		}
 		public string FullyQualifiedName(ISymbol sym)
 		{
@@ -448,11 +448,12 @@
 
 				if (required)
 				{
+					// Make sure they don't start or end with quotes that breaks the string
 					string? longName = pi.Expressions.TryGetValue(Name.LongNameProperty, out var longNameSyntax)
-						? longNameSyntax.ToString()
+						? longNameSyntax.ToString()?.Trim('\"')
 						: null;
 					string? shortName = pi.Expressions.TryGetValue(Name.ShortNameProperty, out var shortNameSyntax)
-						? shortNameSyntax.ToString()
+						? shortNameSyntax.ToString()?.Trim('\'')
 						: p.Identifier.ToString();
 
 					sb.Append(indent).Append("if (null == ").Append(p.Identifier.ToString()).Append(')');
@@ -461,20 +462,20 @@
 					{
 						if (shortName != null)
 						{
-							sb.Append(" return string.Concat(\"Missing required parameter: -\", ").Append(shortName).Append(", \"|--\", ").Append(longName).Append(");\n");
+							sb.Append(" return \"Missing required parameter: -").Append(shortName).Append("|--").Append(longName).Append("\";\n");
 						}
 						else
 						{
-							sb.Append(" return string.Concat(\"Missing required parameter: --\", ").Append(longName).Append(");\n");
+							sb.Append(" return \"Missing required parameter: --").Append(longName).Append("\";\n");
 						}
 					}
 					else if (shortName != null)
 					{
-						sb.Append(" return string.Concat(\"Missing required parameter: -\", ").Append(shortName).Append(");\n");
+						sb.Append(" return \"Missing required parameter: -").Append(shortName).Append("\";\n");
 					}
 					else
 					{
-						sb.Append(" return \"Missing required parameter: ").Append(p.Identifier.ToString()).Append("\");\n");
+						sb.Append(" return \"Missing required parameter: ").Append(p.Identifier.ToString()).Append("\";\n");
 					}
 				}
 			}

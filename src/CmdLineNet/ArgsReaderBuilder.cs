@@ -10,24 +10,26 @@
 		/// <summary>
 		/// Creates a new instance using the default constructor for <see cref="Dictionary{TKey, TValue}"/>.
 		/// </summary>
-		public ArgsReaderBuilder() : this([], [], []) { }
+		public ArgsReaderBuilder() : this([], [], [], []) { }
 		/// <summary>
 		/// Creates a new instance using the provided key comparers.
 		/// </summary>
 		/// <param name="shortKeyComparer">The key comparer to use for short arguments.</param>
 		/// <param name="longKeyComparer">The key comparer to use for long arguments.</param>
-		public ArgsReaderBuilder(IEqualityComparer<char> shortKeyComparer, IEqualityComparer<string> longKeyComparer) : this(new Dictionary<char, ArgMeta<TId>>(shortKeyComparer), new Dictionary<string, ArgMeta<TId>>(longKeyComparer), []) { }
+		public ArgsReaderBuilder(IEqualityComparer<char> shortKeyComparer, IEqualityComparer<string> longKeyComparer) : this(new Dictionary<char, ArgMeta<TId>>(shortKeyComparer), new Dictionary<string, ArgMeta<TId>>(longKeyComparer), [], []) { }
 		/// <summary>
 		/// Creates a new instance, using the provided dictionaries as is.
 		/// </summary>
 		/// <param name="shortArgs">The dictionary to use for short arguments.</param>
 		/// <param name="longArgs">The dictionary to use for long arguments.</param>
 		/// <param name="values">The list to use for values.</param>
-		public ArgsReaderBuilder(Dictionary<char, ArgMeta<TId>> shortArgs, Dictionary<string, ArgMeta<TId>> longArgs, List<ArgValueMeta<TId>> values)
+		/// <param name="orderedArguments">The list to use for ordered arguments.</param>
+		public ArgsReaderBuilder(Dictionary<char, ArgMeta<TId>> shortArgs, Dictionary<string, ArgMeta<TId>> longArgs, List<ArgMeta<TId>> values, List<ArgMeta<TId>> orderedArguments)
 		{
 			ShortArgs = shortArgs;
 			LongArgs = longArgs;
 			Values = values;
+			OrderedArguments = orderedArguments;
 		}
 		/// <summary>
 		/// The configured short arguments.
@@ -40,7 +42,11 @@
 		/// <summary>
 		/// The configured values.
 		/// </summary>
-		public List<ArgValueMeta<TId>> Values { get; }
+		public List<ArgMeta<TId>> Values { get; }
+		/// <summary>
+		/// All arguments and values, in the order of configuration.
+		/// </summary>
+		public List<ArgMeta<TId>> OrderedArguments { get; }
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Switch"/>, with the provided <paramref name="longName"/> and <paramref name="shortName"/>, identified by <paramref name="id"/>.
 		/// </summary>
@@ -49,10 +55,11 @@
 		/// <param name="longName">The long name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Switch(TId id, char shortName, string longName, int min, int max)
+		public ArgsReaderBuilder<TId> Switch(TId id, char shortName, string longName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Switch, shortName, longName, min, max);
+			return Do(id, ArgType.Switch, shortName, longName, min, max, help);
 		}
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Switch"/>, with the provided <paramref name="shortName"/>, identified by <paramref name="id"/>.
@@ -61,10 +68,11 @@
 		/// <param name="shortName">The short name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Switch(TId id, char shortName, int min, int max)
+		public ArgsReaderBuilder<TId> Switch(TId id, char shortName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Switch, shortName, min, max);
+			return Do(id, ArgType.Switch, shortName, min, max, help);
 		}
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Switch"/>, with the provided <paramref name="longName"/>, identified by <paramref name="id"/>.
@@ -73,10 +81,11 @@
 		/// <param name="longName">The long name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Switch(TId id, string longName, int min, int max)
+		public ArgsReaderBuilder<TId> Switch(TId id, string longName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Switch, longName, min, max);
+			return Do(id, ArgType.Switch, longName, min, max, help);
 		}
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Option"/>, with the provided <paramref name="longName"/> and <paramref name="shortName"/>, identified by <paramref name="id"/>.
@@ -86,10 +95,11 @@
 		/// <param name="longName">The long name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Option(TId id, char shortName, string longName, int min, int max)
+		public ArgsReaderBuilder<TId> Option(TId id, char shortName, string longName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Option, shortName, longName, min, max);
+			return Do(id, ArgType.Option, shortName, longName, min, max, help);
 		}
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Option"/>, with the provided <paramref name="shortName"/>, identified by <paramref name="id"/>.
@@ -98,10 +108,11 @@
 		/// <param name="shortName">The short name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Option(TId id, char shortName, int min, int max)
+		public ArgsReaderBuilder<TId> Option(TId id, char shortName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Option, shortName, min, max);
+			return Do(id, ArgType.Option, shortName, min, max, help);
 		}
 		/// <summary>
 		/// Adds an argument of <see cref="ArgType.Option"/>, with the provided <paramref name="longName"/>, identified by <paramref name="id"/>.
@@ -110,10 +121,11 @@
 		/// <param name="longName">The long name.</param>
 		/// <param name="min">The minimum number of times this argument may appear.</param>
 		/// <param name="max">The maximum number of times this argument may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Option(TId id, string longName, int min, int max)
+		public ArgsReaderBuilder<TId> Option(TId id, string longName, int min, int max, string? help = null)
 		{
-			return Do(id, ArgType.Option, longName, min, max);
+			return Do(id, ArgType.Option, longName, min, max, help);
 		}
 		/// <summary>
 		/// Adds a value, identified by <paramref name="id"/>.
@@ -121,10 +133,13 @@
 		/// <param name="id">The identifier for this argument.</param>
 		/// <param name="min">The minimum number of times this value may appear.</param>
 		/// <param name="max">The maximum number of times this value may appear.</param>
+		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Value(TId id, int min, int max)
+		public ArgsReaderBuilder<TId> Value(TId id, int min, int max, string? help = null)
 		{
-			Values.Add(new(id, min, max, null));
+			ArgMeta<TId> m = new(id, ArgType.Value, min, max, help);
+			Values.Add(m);
+			OrderedArguments.Add(m);
 			return this;
 		}
 		/// <summary>
@@ -133,26 +148,32 @@
 		/// <returns>A configured <see cref="ArgsReader{TId}"/>.</returns>
 		public ArgsReader<TId> Build()
 		{
-			return new(ShortArgs, LongArgs, Values);
+			return new(ShortArgs, LongArgs, Values, OrderedArguments);
 		}
-		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, char shortName, int min, int max)
+		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, char shortName, int min, int max, string? help)
 		{
 			CheckShortName(shortName);
-			ShortArgs[shortName] = new(id, type, min, max, null);
+			ArgMeta<TId> m = new(id, type, min, max, help);
+			ShortArgs[shortName] = m;
+			OrderedArguments.Add(m);
 			return this;
 		}
-		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, string longName, int min, int max)
+		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, string longName, int min, int max, string? help)
 		{
 			CheckLongName(longName);
-			LongArgs[longName] = new(id, type, min, max, null);
+			ArgMeta<TId> m = new(id, type, min, max, help);
+			LongArgs[longName] = m;
+			OrderedArguments.Add(m);
 			return this;
 		}
-		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, char shortName, string longName, int min, int max)
+		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, char shortName, string longName, int min, int max, string? help)
 		{
 			CheckShortName(shortName);
 			CheckLongName(longName);
-			ShortArgs[shortName] = new(id, type, min, max, null);
-			LongArgs[longName] = new(id, type, min, max, null);
+			ArgMeta<TId> m = new(id, type, min, max, help);
+			ShortArgs[shortName] = m;
+			LongArgs[longName] = m;
+			OrderedArguments.Add(m);
 			return this;
 		}
 		private void CheckShortName(char shortName)

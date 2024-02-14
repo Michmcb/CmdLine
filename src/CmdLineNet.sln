@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmdLineNet.Test", "CmdLineN
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CmdLineNet.SourceGenerator", "CmdLineNet.SourceGenerator\CmdLineNet.SourceGenerator.csproj", "{D44AFBC3-0E1C-48AA-BD78-38325A16D663}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CmdLineNet.CodeGenerator", "CmdLineNet.CodeGenerator\CmdLineNet.CodeGenerator.csproj", "{A30FC650-A287-4D80-BF10-D157DBCC10D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D44AFBC3-0E1C-48AA-BD78-38325A16D663}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A30FC650-A287-4D80-BF10-D157DBCC10D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A30FC650-A287-4D80-BF10-D157DBCC10D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A30FC650-A287-4D80-BF10-D157DBCC10D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A30FC650-A287-4D80-BF10-D157DBCC10D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

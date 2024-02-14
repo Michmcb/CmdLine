@@ -1,7 +1,7 @@
 ﻿namespace CmdLineNet
 {
 	/// <summary>
-	/// Holds an option or switch argument's ID and other information about it.
+	/// Holds an argument's ID and other information about it.
 	/// </summary>
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	public sealed class ArgMeta<TId> where TId : struct

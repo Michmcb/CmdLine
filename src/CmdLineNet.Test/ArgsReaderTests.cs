@@ -165,8 +165,8 @@
 				['o'] = new ArgMeta<ArgId>(ArgId.B, (ArgType)99999, 1, 1, null),
 			}, new Dictionary<string, ArgMeta<ArgId>>()
 			{
-				["opt"] = new ArgMeta<ArgId>(ArgId.A, (ArgType)99999, 1, 1, null),
-			}, Array.Empty<ArgValueMeta<ArgId>>());
+				["opt"] = new ArgMeta<ArgId>(ArgId.B, (ArgType)99999, 1, 1, null),
+			}, Array.Empty<ArgMeta<ArgId>>(), [new ArgMeta<ArgId>(ArgId.B, (ArgType)99999, 1, 1, null)]);
 			Assert.Collection(reader.Read(new string[] { "-o" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"-o\": 99999", ArgState.OtherError));
 			Assert.Collection(reader.Read(new string[] { "--opt" }), x => CheckArg(x, default, "ArgType enum value was not valid for argument \"--opt\": 99999", ArgState.OtherError));
 		}

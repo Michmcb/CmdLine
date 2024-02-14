@@ -1,6 +1,5 @@
 ﻿namespace CmdLineNet
 {
-	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	/// <summary>
@@ -15,11 +14,13 @@
 		/// <param name="shortArgs">The short form of arguments.</param>
 		/// <param name="longArgs">The long form of arguments. Keys must NOT have leading --.</param>
 		/// <param name="values">The values.</param>
-		public ArgsReader(IReadOnlyDictionary<char, ArgMeta<TId>> shortArgs, IReadOnlyDictionary<string, ArgMeta<TId>> longArgs, IReadOnlyCollection<ArgValueMeta<TId>> values)
+		/// <param name="orderedArguments">The list to use for ordered arguments.</param>
+		public ArgsReader(IReadOnlyDictionary<char, ArgMeta<TId>> shortArgs, IReadOnlyDictionary<string, ArgMeta<TId>> longArgs, IReadOnlyList<ArgMeta<TId>> values, IReadOnlyList<ArgMeta<TId>> orderedArguments)
 		{
 			ShortArgs = shortArgs;
 			LongArgs = longArgs;
 			Values = values;
+			OrderedArguments = orderedArguments;
 		}
 		/// <summary>
 		/// All of the short-form arguments.
@@ -32,7 +33,11 @@
 		/// <summary>
 		/// All of the values.
 		/// </summary>
-		public IReadOnlyCollection<ArgValueMeta<TId>> Values { get; }
+		public IReadOnlyList<ArgMeta<TId>> Values { get; }
+		/// <summary>
+		/// All arguments and values, in the order of configuration.
+		/// </summary>
+		public IReadOnlyList<ArgMeta<TId>> OrderedArguments { get; }
 		/// <summary>
 		/// Reads <paramref name="args"/> and produces <see cref="RawArg{TId}"/>.
 		/// </summary>
@@ -57,14 +62,14 @@
 			// http://docopt.org/
 			List<ArgCount<TId>> valueArgs = new(Values.Count);
 			valueArgs.AddRange(Values.Select(x => new ArgCount<TId>(x)));
-			using IEnumerator<ArgCount<TId>> vEnum = new DuplicatingValuesEnumerator<TId>(valueArgs.GetEnumerator());
+			DuplicatingValuesEnumerator<TId> vEnum = new(valueArgs.GetEnumerator());
 
 			// TODO if the enum starts from 0 and is contiguous, then we can do a sneaky trick here, and just have an array, indexing into it by using TId as an integer index
-		//public Func<IEnumerable<ArgMeta<TId>>, IReadOnlyDictionary<TId, ArgCountable<TId>>> GetStuff { get; }
-			Dictionary<char, ArgCountable<TId>> shortArgs = new();
-			Dictionary<string, ArgCountable<TId>> longArgs = new();
+			//public Func<IEnumerable<ArgMeta<TId>>, IReadOnlyDictionary<TId, ArgCountable<TId>>> GetStuff { get; }
+			Dictionary<char, ArgCountable<TId>> shortArgs = [];
+			Dictionary<string, ArgCountable<TId>> longArgs = [];
 			{
-				Dictionary<TId, ArgCountable<TId>> dict = new();
+				Dictionary<TId, ArgCountable<TId>> dict = [];
 				foreach (var v in ShortArgs.Values)
 				{
 					dict[v.Id] = new ArgCountable<TId>(v.Id, v.Type, v.Max);

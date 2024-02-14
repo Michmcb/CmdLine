@@ -11,11 +11,6 @@
 			Id = meta.Id;
 			Max = meta.Max;
 		}
-		public ArgCount(ArgValueMeta<TId> meta)
-		{
-			Id = meta.Id;
-			Max = meta.Max;
-		}
 		public ArgCount(TId id, int max)
 		{
 			Id = id;
