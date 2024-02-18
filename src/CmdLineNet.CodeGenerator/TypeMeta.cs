@@ -2,4 +2,4 @@
 
 using System;
 
-public sealed record class TypeMeta(string? ParseMethod, Type Type);
+public sealed record class TypeMeta(string? ParseMethod, Type Type, bool IntegralType);

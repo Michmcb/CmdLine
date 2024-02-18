@@ -19,22 +19,23 @@ public static class Program
 		Console.OutputEncoding = Encoding.UTF8;
 		Dictionary<string, TypeMeta> typeMeta;
 		{
-			TypeMeta charType = new("char.TryParse", typeof(char));
-			TypeMeta stringType = new(null, typeof(string));
-			TypeMeta boolType = new("bool.TryParse", typeof(bool));
-			TypeMeta sbyteType = new("sbyte.TryParse", typeof(sbyte));
-			TypeMeta byteType = new("byte.TryParse", typeof(byte));
-			TypeMeta shortType = new("short.TryParse", typeof(short));
-			TypeMeta ushortType = new("ushort.TryParse", typeof(ushort));
-			TypeMeta intType = new("int.TryParse", typeof(int));
-			TypeMeta uintType = new("uint.TryParse", typeof(uint));
-			TypeMeta longType = new("long.TryParse", typeof(long));
-			TypeMeta ulongType = new("ulong.TryParse", typeof(ulong));
-			TypeMeta decimalType = new("decimal.TryParse", typeof(decimal));
-			TypeMeta floatType = new("float.TryParse", typeof(float));
-			TypeMeta doubleType = new("double.TryParse", typeof(double));
-			TypeMeta dateTimeType = new("DateTime.TryParse", typeof(DateTime));
-			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", typeof(DateTimeOffset));
+			TypeMeta charType = new("char.TryParse", typeof(char), false);
+			TypeMeta stringType = new(null, typeof(string), false);
+			TypeMeta boolType = new("bool.TryParse", typeof(bool), false);
+			TypeMeta sbyteType = new("sbyte.TryParse", typeof(sbyte), true);
+			TypeMeta byteType = new("byte.TryParse", typeof(byte), true);
+			TypeMeta shortType = new("short.TryParse", typeof(short), true);
+			TypeMeta ushortType = new("ushort.TryParse", typeof(ushort), true);
+			TypeMeta intType = new("int.TryParse", typeof(int), true);
+			TypeMeta uintType = new("uint.TryParse", typeof(uint), true);
+			TypeMeta longType = new("long.TryParse", typeof(long), true);
+			TypeMeta ulongType = new("ulong.TryParse", typeof(ulong), true);
+			TypeMeta decimalType = new("decimal.TryParse", typeof(decimal), false);
+			TypeMeta floatType = new("float.TryParse", typeof(float), false);
+			TypeMeta doubleType = new("double.TryParse", typeof(double), false);
+			TypeMeta dateTimeType = new("DateTime.TryParse", typeof(DateTime), false);
+			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", typeof(DateTimeOffset), false);
+			TypeMeta guidType = new("Guid.TryParse", typeof(Guid), false);
 			typeMeta = new()
 			{
 				["char"] = charType,
@@ -98,6 +99,9 @@ public static class Program
 
 				["DateTimeOffset"] = dateTimeOffsetType,
 				["System.DateTimeOffset"] = dateTimeOffsetType,
+
+				["Guid"] = guidType,
+				["System.Guid"] = guidType,
 			};
 		}
 		string? ns = null;
@@ -136,39 +140,112 @@ public static class Program
 						continue;
 					case "Option":
 						argType = ArgType.Option;
+						Util.ResetAll(argAcceptors.Values);
+						iMin.Value = 1;
+						iMax.Value = 1;
+						sec.AcceptAll(argAcceptors).ThrowIfError();
+						if (string.IsNullOrEmpty(iLongName.Value) && !iShortName.HaveValue)
+						{
+							throw new IniException(IniErrorCode.ValueMissing, "LongName or ShortName must be provided for an Option: " + iName.Value);
+						}
 						break;
 					case "Switch":
 						argType = ArgType.Switch;
+						Util.ResetAll(argAcceptors.Values);
+						iMin.Value = 1;
+						iMax.Value = 1;
+						sec.AcceptAll(argAcceptors).ThrowIfError();
+						if (string.IsNullOrEmpty(iLongName.Value) && !iShortName.HaveValue)
+						{
+							throw new IniException(IniErrorCode.ValueMissing, "LongName or ShortName must be provided for a swtich: " + iName.Value);
+						}
 						break;
 					case "Value":
 						argType = ArgType.Value;
+						Util.ResetAll(argAcceptors.Values);
+						iMin.Value = 1;
+						iMax.Value = 1;
+						sec.AcceptAll(argAcceptors).ThrowIfError();
+						if (!string.IsNullOrEmpty(iLongName.Value) || iShortName.HaveValue)
+						{
+							throw new IniException(IniErrorCode.ValueInvalid, "LongName or ShortName must NOT be provided for a value: " + iName.Value);
+						}
 						break;
 					default:
-						throw new IniException(IniErrorCode.ValueInvalid, "Section name must be either Verb, Option, Switch, or Value, but was " + sec.Name);
+						throw new IniException(IniErrorCode.ValueInvalid, "Section name must be either Verb, Option, Switch, or Value, but was " + iName.Value);
 				}
-				Util.ResetAll(argAcceptors.Values);
-				iMin.Value = 1;
-				iMax.Value = 1;
-				sec.AcceptAll(argAcceptors).ThrowIfError();
+				if (iMin.Value > iMax.Value)
+				{
+					throw new IniException(IniErrorCode.ValueInvalid, "Min was larger than Max " + iName.Value);
+				}
 				string name = iName.Get();
 				string typeName = iType.Get();
-				typeMeta.TryGetValue(typeName, out var tm);
-				if (argType != ArgType.Value && string.IsNullOrEmpty(iLongName.Value) && !iShortName.HaveValue)
+				if (iDefault.Value == "")
 				{
-					throw new IniException(IniErrorCode.ValueMissing, "LongName or ShortName must be provided for a Switch or Option: " + sec.Name);
+					iDefault.Value = null;
 				}
+				typeMeta.TryGetValue(typeName, out var tm);
+				// If it's a switch, then we require a boolean for singular switches or an integral type for multiple switches
+				if (argType == ArgType.Switch)
+				{
+					if (tm == null)
+					{
+						throw new IniException(IniErrorCode.ValueInvalid, "Switches have to be either bool or an integral type: " + iName.Value);
+					}
+					if (iMax.Value == 1)
+					{
+						if (tm.Type != typeof(bool))
+						{
+							throw new IniException(IniErrorCode.ValueInvalid, "Switches that accept only 1 value must be of type bool: " + iName.Value);
+						}
+						iDefault.Value ??= "false";
+					}
+					if (iMax.Value > 1)
+					{
+						if (!tm.IntegralType)
+						{
+							throw new IniException(IniErrorCode.ValueInvalid, "Switches that accept many values must be an integral type: " + iName.Value);
+						}
+						iDefault.Value ??= "0";
+					}
+				}
+
+				bool required = !iRequired.HaveValue || iRequired.Value;
+				string initVal;
+				bool localTypeNullable;
+				if (iDefault.Value != null)
+				{
+					localTypeNullable = false;
+					initVal = iDefault.Value;
+				}
+				else
+				{
+					if (iMax.Value == 1)
+					{
+						localTypeNullable = true;
+						initVal = "null";
+					}
+					else
+					{
+						localTypeNullable = false;
+						initVal = string.Concat("new List<", typeName, ">()");
+					}
+				}
+
 				vargs.Add(new ValidatedArg
 				(
 					Name: name,
 					ArgType: argType,
 					TypeName: typeName,
 					TypeMeta: tm,
-					Required: !iRequired.HaveValue || iRequired.Value,
+					Required: required,
+					CtorTypeNullable: !required && iDefault.Value == null,
+					LocalTypeNullable: localTypeNullable,
 					LongName: iLongName.Value,
 					ShortName: iShortName.HaveValue ? iShortName.Value : null,
 					Min: iMin.Value,
 					Max: iMax.Value,
-					Default: iDefault.Value,
+					InitialValue: initVal,
 					Help: iHelp.Value
 				));
 			}
@@ -179,9 +256,23 @@ public static class Program
 		Console.Write("#nullable enable\n");
 		Console.Write("namespace ");
 		Console.Write(ns);
-		Console.Write("\n{\n\tusing System;\n\tusing System.Collections.Generic;\n\tusing CmdLineNet;\n\tpublic sealed partial record class ");
+		Console.Write("\n{\n");
+		Console.Write(indent);
+		Console.Write("using System;\n");
+		Console.Write(indent);
+		Console.Write("using System.Collections.Generic;\n");
+		Console.Write(indent);
+		Console.Write("using CmdLineNet;\n");
+		Console.Write(indent);
+		Console.Write("public sealed partial record class ");
 		Console.Write(className);
-		Console.Write(" : ICmdParseable<");
+		Console.Write('(');
+
+		Console.Write(string.Join(", ", vargs.Select(x => x.Max > 1
+			? x.ArgType == ArgType.Switch ? string.Concat(x.TypeName, " ", x.Name) : string.Concat("List<", x.TypeName, "> ", x.Name)
+			: string.Concat(x.TypeName, x.CtorTypeNullable ? "? " : " ", x.Name))));
+
+		Console.Write(") : ICmdParseable<");
 		Console.Write(className);
 		Console.Write(".Id, ");
 		Console.Write(className);
@@ -197,8 +288,8 @@ public static class Program
 		}
 		Console.Write("}\n");
 		Console.Write(indent);
-		
-		Console.Write("private static ArgsReader _reader = new ArgsReaderBuilder<Id>()\n");
+
+		Console.Write("private static ArgsReader<Id> _reader = new ArgsReaderBuilder<Id>()\n");
 		indent.In();
 		foreach (var a in vargs)
 		{
@@ -256,34 +347,32 @@ public static class Program
 		foreach (var a in vargs)
 		{
 			Console.Write(indent);
-			if (a.Max > 1)
+			if (a.Max > 1 && a.ArgType != ArgType.Switch)
 			{
 				Console.Write("List<");
 				Console.Write(a.TypeName);
 				Console.Write("> ");
 				Console.Write(a.Name);
-				Console.Write(" = new List<");
-				Console.Write(a.TypeName);
-				Console.Write(">();\n");
+				Console.Write(" = ");
 			}
 			else
 			{
 				Console.Write(a.TypeName);
-				if (a.Default != null)
+				if (a.LocalTypeNullable)
+				{
+					Console.Write("? ");
+					Console.Write(a.Name);
+					Console.Write(" = ");
+				}
+				else
 				{
 					Console.Write(' ');
 					Console.Write(a.Name);
 					Console.Write(" = ");
-					Console.Write(a.Default);
-					Console.Write(";\n");
-				}
-				else
-				{
-					Console.Write("? ");
-					Console.Write(a.Name);
-					Console.Write(" = null;\n");
 				}
 			}
+			Console.Write(a.InitialValue);
+			Console.Write(";\n");
 		}
 		Console.Write(indent);
 		Console.Write("foreach (var a in args)\n");
@@ -305,7 +394,19 @@ public static class Program
 			Console.Write(":\n");
 			Console.Write(indent.In());
 
-			if (a.TypeMeta?.ParseMethod != null)
+			if (a.ArgType == ArgType.Switch)
+			{
+				Console.Write(a.Name);
+				if (a.Max > 1)
+				{
+					Console.Write("++;\n");
+				}
+				else
+				{
+					Console.Write(" = true;\n");
+				}
+			}
+			else if (a.TypeMeta?.ParseMethod != null)
 			{
 				Console.Write("if (");
 				Console.Write(a.TypeMeta.ParseMethod);
@@ -355,12 +456,99 @@ public static class Program
 
 		foreach (var a in vargs)
 		{
-			if (a.Required)
+			// TODO we aren't doing all the checks that we need to; some arguments are slipping through the cracks
+			// If the argument is required and there's only min/max 1, then we check null or not null
+			// If the argument is required and there's multiple values, we 
+			// If argument's optional, then if we have at least one we check min/max
+
+			if (a.LocalTypeNullable && !a.CtorTypeNullable)
 			{
-				Console.Write(indent);
+				// If the local type's nullable and the ctor type isn't, then we have to do a null check
+				Console.Write("if (null == ");
+				Console.Write(a.Name);
+				Console.Write(')');
+				switch (a.ArgType)
+				{
+					case ArgType.Switch:
+						Console.Write(" return \"Missing required switch: ");
+						break;
+					case ArgType.Option:
+						Console.Write(" return \"Missing required option: ");
+						break;
+					case ArgType.Value:
+						Console.Write(" return \"Missing required value: ");
+						break;
+				}
+				WriteName(a);
+			}
+
+			// TODO If min and max are the same, we don't need to say "At least 3 and at most 3", we can just say "Exactly 3"
+			if (a.ArgType == ArgType.Switch)
+			{
+				// Make sure that the switch is between the min/max
 				if (a.Max > 1)
 				{
+					Console.Write(indent);
 					Console.Write("if (");
+					if (!a.Required)
+					{
+						Console.Write(a.Name);
+						Console.Write(" != 0 && (");
+					}
+					Console.Write(a.Name);
+					Console.Write(" < ");
+					Console.Write(a.Min);
+					if (a.Max != int.MaxValue)
+					{
+						Console.Write(" || ");
+						Console.Write(a.Name);
+						Console.Write(" > ");
+						Console.Write(a.Max);
+					}
+					if (a.Required)
+					{
+						Console.Write(") return \"Switch may appear at least ");
+					}
+					else
+					{
+						Console.Write(")) return \"Switch (if provided) may appear at least ");
+					}
+					Console.Write(a.Min);
+					if (a.Max == int.MaxValue)
+					{
+						Console.Write(" times: ");
+					}
+					else
+					{
+						Console.Write(" times and at most ");
+						Console.Write(a.Max);
+						Console.Write(" times: ");
+					}
+					WriteName(a);
+				}
+				else if (a.Required)
+				{
+					Console.Write(indent);
+					Console.Write("if (!");
+					Console.Write(a.Name);
+					Console.Write(") return \"Switch is required: ");
+					WriteName(a);
+				}
+			}
+			else
+			{
+				if (a.Max > 1)
+				{
+					// We already would have done the null check if needed
+					// Collection types are never null (for now, but they might be in the future)
+
+					Console.Write(indent);
+					Console.Write("if (");
+					if (!a.Required)
+					{
+						Console.Write(a.Name);
+						Console.Write(".Count != 0 && (");
+					}
 					Console.Write(a.Name);
 					Console.Write(".Count < ");
 					Console.Write(a.Min);
@@ -371,7 +559,24 @@ public static class Program
 						Console.Write(".Count > ");
 						Console.Write(a.Max);
 					}
-					Console.Write(") return \"Argument requires at least ");
+					string name = a.ArgType switch
+					{
+						ArgType.Option => "Option",
+						ArgType.Value => "Value",
+						_ => "Argument",
+					};
+					if (a.Required)
+					{
+						Console.Write(") return \"");
+						Console.Write(name);
+						Console.Write(" requires at least ");
+					}
+					else
+					{
+						Console.Write(")) return \"");
+						Console.Write(name);
+						Console.Write(" (if provided) requires at least ");
+					}
 					Console.Write(a.Min);
 					if (a.Max == int.MaxValue)
 					{
@@ -383,15 +588,12 @@ public static class Program
 						Console.Write(a.Max);
 						Console.Write(" values: ");
 					}
+					WriteName(a);
 				}
-				else
-				{
-					Console.Write("if (null == ");
-					Console.Write(a.Name);
-					Console.Write(')');
-					Console.Write(" return \"Missing required argument: ");
-				}
+			}
 
+			static void WriteName(ValidatedArg a)
+			{
 				if (a.LongName != null)
 				{
 					if (a.ShortName != null)
@@ -415,39 +617,15 @@ public static class Program
 					Console.Write(a.ShortName);
 					Console.Write("\";\n");
 				}
-				else
+				else if (a.ArgType != ArgType.Value)
 				{
+					// Should never happen since it's checked earlier
 					throw new InvalidDataException("Both LongName and ShortName are null for Argument " + a.Name);
 				}
-			}
-			else if (a.Max > 1)
-			{
-				Console.Write(indent);
-				Console.Write("if (");
-				Console.Write(a.Name);
-				Console.Write(".Count != 0 && (");
-				Console.Write(a.Name);
-				Console.Write(".Count < ");
-				Console.Write(a.Min);
-				if (a.Max != int.MaxValue)
-				{
-					Console.Write(" || ");
-					Console.Write(a.Name);
-					Console.Write(".Count > ");
-					Console.Write(a.Max);
-				}
-
-				Console.Write(")) return \"Argument (if provided) requires at least ");
-				Console.Write(a.Min);
-				if (a.Max == int.MaxValue)
-				{
-					Console.Write(" values: ");
-				}
 				else
 				{
-					Console.Write(" values and at most ");
-					Console.Write(a.Max);
-					Console.Write(" values: ");
+					Console.Write(a.Name);
+					Console.Write("\";\n");
 				}
 			}
 		}
@@ -457,9 +635,14 @@ public static class Program
 		Console.Write('(');
 		Console.Write(string.Join(", ", vargs.Select(x =>
 		{
-			return x.Max > 1
-			? x.Name
-			: x.TypeMeta != null && x.TypeMeta.Type.IsValueType && x.Default == null ? x.Name + ".Value" : x.Name;
+			if (x.LocalTypeNullable && !x.CtorTypeNullable && x.TypeMeta != null && x.TypeMeta.Type.IsValueType)
+			{
+				return x.Name + ".Value";
+			}
+			else
+			{
+				return x.Name;
+			}
 		})));
 		Console.Write(");\n");
 		Console.Write(indent.Out());
@@ -502,4 +685,3 @@ public static class Program
 		}
 	}
 }
-public sealed record class ValidatedArg(string Name, ArgType ArgType, string TypeName, TypeMeta? TypeMeta, bool Required, string? LongName, char? ShortName, int Min, int Max, string? Default, string? Help);

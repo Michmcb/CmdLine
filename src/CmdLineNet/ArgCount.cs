@@ -6,11 +6,17 @@
 	/// <typeparam name="TId">The type of the ID given to each Argument.</typeparam>
 	public readonly struct ArgCount<TId> where TId : struct
 	{
+		/// <summary>
+		/// Creates a new instance, using <see cref="ArgMeta{TId}.Id"/> and <see cref="ArgMeta{TId}.Max"/>.
+		/// </summary>
 		public ArgCount(ArgMeta<TId> meta)
 		{
 			Id = meta.Id;
 			Max = meta.Max;
 		}
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
 		public ArgCount(TId id, int max)
 		{
 			Id = id;

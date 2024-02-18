@@ -6,6 +6,9 @@
 	/// <typeparam name="TId">The type of the ID given to each Argument.</typeparam>
 	public sealed class ArgCountable<TId> where TId : struct
 	{
+		/// <summary>
+		/// Creates a new insance with <see cref="Count"/> set to 0.
+		/// </summary>
 		public ArgCountable(TId id, ArgType type, int max)
 		{
 			Id = id;

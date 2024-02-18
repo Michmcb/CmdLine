@@ -7,6 +7,9 @@
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	public readonly struct RawArg<TId> where TId : struct
 	{
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
 		public RawArg(TId id, string content, ArgState argType)
 		{
 			Id = id;

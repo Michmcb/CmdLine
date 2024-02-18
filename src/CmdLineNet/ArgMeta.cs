@@ -6,6 +6,9 @@
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	public sealed class ArgMeta<TId> where TId : struct
 	{
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
 		public ArgMeta(TId id, ArgType type, int min, int max, string? help)
 		{
 			Id = id;
