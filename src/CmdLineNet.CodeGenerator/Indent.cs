@@ -2,19 +2,23 @@
 
 public sealed class Indent
 {
-	public Indent(int amount)
+	public Indent(int amt, char c)
 	{
-		Val = new string('\t', amount);
+		Char = c;
+		Amt = amt;
+		Val = new string(c, amt);
 	}
+	public char Char { get; }
+	public int Amt { get; }
 	public string Val { get; private set; }
 	public string In()
 	{
-		Val += "\t";
+		Val += new string(Char, Amt);
 		return Val;
 	}
 	public string Out()
 	{
-		Val = Val.Substring(0, Val.Length - 1);
+		Val = Val[..^Amt];
 		return Val;
 	}
 	public static implicit operator string(Indent s) => s.Val;
