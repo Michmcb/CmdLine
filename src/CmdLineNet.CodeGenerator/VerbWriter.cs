@@ -63,6 +63,17 @@
 						sw.Write(".Value(Id.");
 						sw.Write(a.Name);
 						sw.Write(", ");
+						if (a.FriendlyName != null)
+						{
+							sw.Write('\"');
+							sw.Write(a.FriendlyName);
+							sw.Write('\"');
+							sw.Write(", ");
+						}
+						else
+						{
+							sw.Write("null, ");
+						}
 						sw.Write(a.Min);
 						sw.Write(", ");
 						sw.Write(a.Max);
@@ -163,29 +174,39 @@
 				}
 				else if (a.TypeMeta?.ParseMethod != null)
 				{
-					if (a.TypeMeta.ParseMethodReturnsErrorMessage)
+					switch (a.TypeMeta.ParseMethodReturnType)
 					{
-						sw.Write("var errorMessage");
-						sw.Write(i);
-						sw.Write(" = ");
-						sw.Write(a.TypeMeta.ParseMethod);
-						sw.Write("(a.Content, out var v");
-						sw.Write(i);
-						sw.Write(");\n");
-						sw.Write(indent);
-						sw.Write("if (null == errorMessage");
-						sw.Write(i);
-						sw.Write(") { ");
+						case ParseMethodReturnType.Boolean:
+							sw.Write("if (");
+							sw.Write(a.TypeMeta.ParseMethod);
+							sw.Write("(a.Content, out var v");
+							sw.Write(i);
+							sw.Write(")) { ");
+							break;
+						case ParseMethodReturnType.String:
+							sw.Write("var errorMessage");
+							sw.Write(i);
+							sw.Write(" = ");
+							sw.Write(a.TypeMeta.ParseMethod);
+							sw.Write("(a.Content, out var v");
+							sw.Write(i);
+							sw.Write(");\n");
+							sw.Write(indent);
+							sw.Write("if (null == errorMessage");
+							sw.Write(i);
+							sw.Write(") { ");
+							break;
+						case ParseMethodReturnType.ParseResult:
+							sw.Write("if (");
+							sw.Write(a.TypeMeta.ParseMethod);
+							sw.Write("(a.Content).Ok(out var v");
+							sw.Write(i);
+							sw.Write(", out var errorMessage");
+							sw.Write(i);
+							sw.Write(")) { ");
+							break;
 					}
-					else
-					{
-						sw.Write("if (");
-						sw.Write(a.TypeMeta.ParseMethod);
-						sw.Write("(a.Content, out var v");
-						sw.Write(i);
-						sw.Write(")) { ");
-					}
-					
+
 					sw.Write(a.Name);
 					if (a.Max > 1)
 					{
@@ -202,15 +223,17 @@
 					sw.Write(indent);
 					sw.Write("else { return string.Concat(\"Unable to parse as ");
 					sw.Write(a.TypeName);
-					if (a.TypeMeta.ParseMethodReturnsErrorMessage)
+					switch (a.TypeMeta.ParseMethodReturnType)
 					{
-						sw.Write(": \", a.Content, \" because \", errorMessage");
-						sw.Write(i);
-						sw.Write("); }\n");
-					}
-					else
-					{
-						sw.Write(": \", a.Content); }\n");
+						case ParseMethodReturnType.Boolean:
+							sw.Write(": \", a.Content); }\n");
+							break;
+						case ParseMethodReturnType.ParseResult:
+						case ParseMethodReturnType.String:
+							sw.Write(": \", a.Content, \" because \", errorMessage");
+							sw.Write(i);
+							sw.Write("); }\n");
+							break;
 					}
 					i++;
 				}
@@ -418,7 +441,7 @@
 			sw.Write('(');
 			sw.Write(string.Join(", ", args.Select(x =>
 			{
-				if (x.LocalTypeNullable && !x.CtorTypeNullable && x.TypeMeta != null && x.TypeMeta.Type.IsValueType)
+				if (x.LocalTypeNullable && !x.CtorTypeNullable && x.TypeMeta != null && x.TypeMeta.IsValueType)
 				{
 					return x.Name + ".Value";
 				}

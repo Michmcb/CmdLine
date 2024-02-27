@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net7.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.3</Version>
+    <Version>0.4</Version>
     <Authors>Michael McBride</Authors>
     <Company></Company>
     <Product>SectionConfig</Product>
@@ -16,9 +16,9 @@
     <RepositoryUrl>https://github.com/Michmcb/CmdLine</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageTags>commandline, parsing, parser, option, command, line, argument, library</PackageTags>
-    <PackageReleaseNotes>- Dropped ArgValueMeta, just have ArgMeta now.
-- OrderedArguments added, Help can be added via ArgsReaderBuilder now
-- Code Generator added, to generate a .cs codefile from an .ini file</PackageReleaseNotes>
+    <PackageReleaseNotes>- HelpWriter added
+- ArgMeta holds short and long name now, to help with writing help
+- Values can have a friendly name for writing help</PackageReleaseNotes>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageIconUrl />
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

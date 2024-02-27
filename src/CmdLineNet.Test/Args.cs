@@ -11,7 +11,7 @@
 			.Switch(ArgId.D, 'd', "delta", 1, 1, null)
 			.Switch(ArgId.E, 'e', "echo", 1, 1, null)
 			.Switch(ArgId.F, 'f', "foxtrot", 1, 1, null)
-			.Value(ArgId.V, 0, int.MaxValue, null)
+			.Value(ArgId.V, "Value", 0, int.MaxValue, null)
 			.Build();
 		public static ArgsReader<ArgId> GetReader()
 		{

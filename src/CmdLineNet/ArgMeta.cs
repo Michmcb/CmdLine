@@ -9,10 +9,12 @@
 		/// <summary>
 		/// Creates a new instance.
 		/// </summary>
-		public ArgMeta(TId id, ArgType type, int min, int max, string? help)
+		public ArgMeta(TId id, ArgType type, char shortName, string? name, int min, int max, string? help)
 		{
 			Id = id;
 			Type = type;
+			ShortName = shortName;
+			Name = name;
 			Min = min;
 			Max = max;
 			Help = help;
@@ -25,6 +27,14 @@
 		/// The type of this argument.
 		/// </summary>
 		public ArgType Type { get; }
+		/// <summary>
+		/// The short name, if any.
+		/// </summary>
+		public char ShortName { get; }
+		/// <summary>
+		/// The long name (or friendly name, if a value), if any.
+		/// </summary>
+		public string? Name { get; }
 		/// <summary>
 		/// The minimum number of times this argument may appear.
 		/// </summary>

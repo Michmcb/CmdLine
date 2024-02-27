@@ -11,6 +11,7 @@ public sealed record class ValidatedArg
 	bool LocalTypeNullable,
 	string? LongName,
 	char? ShortName,
+	string? FriendlyName,
 	int Min,
 	int Max,
 	string InitialValue,

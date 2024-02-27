@@ -53,23 +53,24 @@ public static class Program
 	{
 		Dictionary<string, TypeMeta> typeMeta;
 		{
-			TypeMeta charType = new("char.TryParse", typeof(char), false, false);
-			TypeMeta stringType = new(null, typeof(string), false, false);
-			TypeMeta boolType = new("bool.TryParse", typeof(bool), false, false);
-			TypeMeta sbyteType = new("sbyte.TryParse", typeof(sbyte), false, true);
-			TypeMeta byteType = new("byte.TryParse", typeof(byte), false, true);
-			TypeMeta shortType = new("short.TryParse", typeof(short), false, true);
-			TypeMeta ushortType = new("ushort.TryParse", typeof(ushort), false, true);
-			TypeMeta intType = new("int.TryParse", typeof(int), false, true);
-			TypeMeta uintType = new("uint.TryParse", typeof(uint), false, true);
-			TypeMeta longType = new("long.TryParse", typeof(long), false, true);
-			TypeMeta ulongType = new("ulong.TryParse", typeof(ulong), false, true);
-			TypeMeta decimalType = new("decimal.TryParse", typeof(decimal), false, false);
-			TypeMeta floatType = new("float.TryParse", typeof(float), false, false);
-			TypeMeta doubleType = new("double.TryParse", typeof(double), false, false);
-			TypeMeta dateTimeType = new("DateTime.TryParse", typeof(DateTime), false, false);
-			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", typeof(DateTimeOffset), false, false);
-			TypeMeta guidType = new("Guid.TryParse", typeof(Guid), false, false);
+			TypeMeta charType = new("char.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta stringType = new(null, false, ParseMethodReturnType.Boolean, false);
+			TypeMeta boolType = new("bool.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta sbyteType = new("sbyte.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta byteType = new("byte.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta shortType = new("short.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta ushortType = new("ushort.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta intType = new("int.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta uintType = new("uint.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta longType = new("long.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta ulongType = new("ulong.TryParse", true, ParseMethodReturnType.Boolean, true);
+			TypeMeta decimalType = new("decimal.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta floatType = new("float.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta doubleType = new("double.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta dateTimeType = new("DateTime.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta dateOnlyType = new("DateOnly.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta guidType = new("Guid.TryParse", true, ParseMethodReturnType.Boolean, false);
 			typeMeta = new()
 			{
 				["char"] = charType,
@@ -131,6 +132,9 @@ public static class Program
 				["DateTime"] = dateTimeType,
 				["System.DateTime"] = dateTimeType,
 
+				["DateOnly"] = dateOnlyType,
+				["System.DateOnly"] = dateOnlyType,
+
 				["DateTimeOffset"] = dateTimeOffsetType,
 				["System.DateTimeOffset"] = dateTimeOffsetType,
 
@@ -151,15 +155,16 @@ public static class Program
 		b = new(new(StringComparer.OrdinalIgnoreCase));
 		var iParserType = b.OnlyLast("Type");
 		var iParserParseMethod = b.OnlyLast("ParseMethod");
+		var iParserIsValueType = b.OnlyLast("IsValueType", Parse.Boolean);
 		var iIsIntegralType = b.OnlyLast("IsIntegralType", Parse.Boolean);
-		// TODO change this, ideally, it should be either the TryParse style of bool, or returns ParseResult<T>.
-		var iParserReturnsErrorMessage = b.OnlyLast("ReturnsErrorMessage", Parse.Boolean);
+		var iParserReturnType = b.OnlyLast("ReturnType");
 		var parserAcceptors = b.Acceptors;
 
 		b = new(new(StringComparer.OrdinalIgnoreCase));
 		var iArgName = b.OnlyLast("Name");
 		var iArgType = b.OnlyLast("Type");
 		var iArgRequired = b.OnlyLast("Required", Parse.Boolean);
+		var iArgFriendlyName = b.OnlyLast("FriendlyName");
 		var iArgLongName = b.OnlyLast("LongName");
 		var iArgShortName = b.OnlyLast("ShortName", x => char.TryParse(x, out char c) ? new IniResult<char>(c, default) : new IniResult<char>(default, new(IniErrorCode.ValueInvalid, "Could not parse \"" + x + "\" as char")));
 		var iArgMin = b.OnlyLast("Min", Parse.Int32);
@@ -183,7 +188,38 @@ public static class Program
 						var type = iParserType.Get("Type");
 						var parseMethod = iParserParseMethod.Get("Method");
 						// Default for integral type and returning error message is false
-						typeMeta.Add(type, new TypeMeta(parseMethod, null, iParserReturnsErrorMessage.Value, iIsIntegralType.Value));
+						ParseMethodReturnType pmrt;
+						if (iParserReturnType.Value != null)
+						{
+							switch (iParserReturnType.Value)
+							{
+								case "bool":
+								case "Boolean":
+								case "System.Boolean":
+									pmrt = ParseMethodReturnType.Boolean;
+									break;
+								case "string":
+								case "string?":
+								case "String":
+								case "String?":
+								case "System.String":
+								case "System.String?":
+									pmrt = ParseMethodReturnType.String;
+									break;
+								case "ParseResult":
+								case "CmdLineNet.ParseResult":
+									pmrt = ParseMethodReturnType.ParseResult;
+									break;
+								default:
+									throw new IniException(IniErrorCode.ValueInvalid, "ReturnType must be bool, string, or ParseResult: " + iParserReturnType.Value);
+							}
+						}
+						else
+						{
+							pmrt = ParseMethodReturnType.Boolean;
+						}
+
+						typeMeta[type] = new TypeMeta(parseMethod, iParserIsValueType.Value, pmrt, iIsIntegralType.Value);
 						continue;
 					case "Verb":
 						Util.ResetAll(verbAcceptors.Values);
@@ -279,7 +315,7 @@ public static class Program
 					}
 					if (iArgMax.Value == 1)
 					{
-						if (tm.Type != typeof(bool))
+						if (typeName != "bool" && typeName != "Boolean" && typeName != "System.Boolean")
 						{
 							throw new IniException(IniErrorCode.ValueInvalid, "Switches that accept only 1 value must be of type bool: " + iArgName.Value);
 						}
@@ -334,10 +370,11 @@ public static class Program
 					LocalTypeNullable: localTypeNullable,
 					LongName: iArgLongName.Value,
 					ShortName: iArgShortName.HaveValue ? iArgShortName.Value : null,
+					FriendlyName: iArgFriendlyName.Value?.Replace("\"", "\\\""),
 					Min: iArgMin.Value,
 					Max: iArgMax.Value,
 					InitialValue: initVal,
-					Help: iArgHelp.Value
+					Help: iArgHelp.Value?.Replace("\"", "\\\"")
 				));
 			}
 			ini.Reader.Error.ThrowIfError();

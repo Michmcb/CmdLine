@@ -14,7 +14,7 @@ namespace CmdLineNet.Test.ArgsReaderBuilder
 			builder.Switch(ArgId.D, 'd', "delta", 1, 1, "");
 			builder.Switch(ArgId.E, 'e', 1, 1);
 			builder.Switch(ArgId.F, "foxtrot", 1, 1);
-			builder.Value(ArgId.V, 1, 1);
+			builder.Value(ArgId.V, "Value", 1, 1);
 
 			{
 				var a = builder.OrderedArguments[0];

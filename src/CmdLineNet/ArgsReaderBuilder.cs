@@ -131,13 +131,14 @@
 		/// Adds a value, identified by <paramref name="id"/>.
 		/// </summary>
 		/// <param name="id">The identifier for this argument.</param>
+		/// <param name="friendlyName">A friendly name for this argument, which can be displayed in help messages to the user.</param>
 		/// <param name="min">The minimum number of times this value may appear.</param>
 		/// <param name="max">The maximum number of times this value may appear.</param>
 		/// <param name="help">Help text associated with this argument.</param>
 		/// <returns>This instance so calls can be chained.</returns>
-		public ArgsReaderBuilder<TId> Value(TId id, int min, int max, string? help = null)
+		public ArgsReaderBuilder<TId> Value(TId id, string? friendlyName, int min, int max, string? help = null)
 		{
-			ArgMeta<TId> m = new(id, ArgType.Value, min, max, help);
+			ArgMeta<TId> m = new(id, ArgType.Value, default, friendlyName, min, max, help);
 			Values.Add(m);
 			OrderedArguments.Add(m);
 			return this;
@@ -153,7 +154,7 @@
 		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, char shortName, int min, int max, string? help)
 		{
 			CheckShortName(shortName);
-			ArgMeta<TId> m = new(id, type, min, max, help);
+			ArgMeta<TId> m = new(id, type, shortName, null, min, max, help);
 			ShortArgs[shortName] = m;
 			OrderedArguments.Add(m);
 			return this;
@@ -161,7 +162,7 @@
 		private ArgsReaderBuilder<TId> Do(TId id, ArgType type, string longName, int min, int max, string? help)
 		{
 			CheckLongName(longName);
-			ArgMeta<TId> m = new(id, type, min, max, help);
+			ArgMeta<TId> m = new(id, type, default, longName, min, max, help);
 			LongArgs[longName] = m;
 			OrderedArguments.Add(m);
 			return this;
@@ -170,7 +171,7 @@
 		{
 			CheckShortName(shortName);
 			CheckLongName(longName);
-			ArgMeta<TId> m = new(id, type, min, max, help);
+			ArgMeta<TId> m = new(id, type, shortName, longName, min, max, help);
 			ShortArgs[shortName] = m;
 			LongArgs[longName] = m;
 			OrderedArguments.Add(m);
@@ -197,7 +198,7 @@
 			{
 				throw new CmdLineArgumentException("Long arguments was null, empty, or entirely whitespace");
 			}
-			if (longName.StartsWith("-"))
+			if (longName.StartsWith('-'))
 			{
 				throw new CmdLineArgumentException("Long argument may not start with a dash. Argument: " + longName);
 			}
