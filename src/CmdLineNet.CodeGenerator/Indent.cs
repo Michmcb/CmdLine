@@ -6,7 +6,7 @@ public sealed class Indent
 	{
 		Char = c;
 		Amt = amt;
-		Val = new string(c, amt);
+		Val = new string(c, 0);
 	}
 	public char Char { get; }
 	public int Amt { get; }

@@ -34,12 +34,21 @@ public static class Program
 		{
 			if (args.Length == 2)
 			{
-				using var s = new FileStream(args[1], FileMode.Create, FileAccess.Write);
-				return DoTheThing(iniFile, s);
+				if (args[1] == "-")
+				{
+					using Stream s = Console.OpenStandardOutput();
+					return DoTheThing(iniFile, s);
+				}
+				else
+				{
+					using FileStream s = new(args[1], FileMode.Create, FileAccess.Write);
+					return DoTheThing(iniFile, s);
+				}
 			}
 			else
 			{
-				using var s = Console.OpenStandardOutput();
+				string path = Path.ChangeExtension(args[0], ".g.cs");
+				using FileStream s = new(path, FileMode.Create, FileAccess.Write);
 				return DoTheThing(iniFile, s);
 			}
 		}
@@ -49,41 +58,69 @@ public static class Program
 			return 2;
 		}
 	}
+	public static ParseMethodReturnType ParseParseMethodReturnType(string? v, string keyName)
+	{
+		if (v == null) return ParseMethodReturnType.Boolean;
+		switch (v)
+		{
+			case "bool":
+			case "Boolean":
+			case "System.Boolean":
+				return ParseMethodReturnType.Boolean;
+			case "string":
+			case "string?":
+			case "String":
+			case "String?":
+			case "System.String":
+			case "System.String?":
+				return ParseMethodReturnType.String;
+			case "ParseResult":
+			case "CmdLineNet.ParseResult":
+				return ParseMethodReturnType.ParseResult;
+			default:
+				throw new IniException(IniErrorCode.ValueInvalid, string.Concat(keyName, " must be bool, string, or ParseResult: ", v));
+		}
+	}
 	public static int DoTheThing(string iniFilePath, Stream sout)
 	{
+		const string stringAlias = "string";
+		const string boolAlias = "bool";
+		const string boolTypeName = "Boolean";
+		const string boolFullTypeName = "System.Boolean";
+
 		Dictionary<string, TypeMeta> typeMeta;
 		{
-			TypeMeta charType = new("char.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta stringType = new(null, false, ParseMethodReturnType.Boolean, false);
-			TypeMeta boolType = new("bool.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta sbyteType = new("sbyte.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta byteType = new("byte.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta shortType = new("short.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta ushortType = new("ushort.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta intType = new("int.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta uintType = new("uint.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta longType = new("long.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta ulongType = new("ulong.TryParse", true, ParseMethodReturnType.Boolean, true);
-			TypeMeta decimalType = new("decimal.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta floatType = new("float.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta doubleType = new("double.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta dateTimeType = new("DateTime.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta dateOnlyType = new("DateOnly.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", true, ParseMethodReturnType.Boolean, false);
-			TypeMeta guidType = new("Guid.TryParse", true, ParseMethodReturnType.Boolean, false);
+			TypeMeta charType = new("char.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta stringType = new(null, ParseMethodReturnType.Boolean, false, false);
+			TypeMeta boolType = new("bool.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta sbyteType = new("sbyte.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta byteType = new("byte.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta shortType = new("short.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta ushortType = new("ushort.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta intType = new("int.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta uintType = new("uint.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta longType = new("long.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta ulongType = new("ulong.TryParse", ParseMethodReturnType.Boolean, true, true);
+			TypeMeta decimalType = new("decimal.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta floatType = new("float.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta doubleType = new("double.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta dateTimeType = new("DateTime.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta dateOnlyType = new("DateOnly.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta dateTimeOffsetType = new("DateTimeOffset.TryParse", ParseMethodReturnType.Boolean, true, false);
+			TypeMeta guidType = new("Guid.TryParse", ParseMethodReturnType.Boolean, true, false);
 			typeMeta = new()
 			{
 				["char"] = charType,
 				["Char"] = charType,
 				["System.Char"] = charType,
 
-				["string"] = stringType,
+				[stringAlias] = stringType,
 				["String"] = stringType,
 				["System.String"] = stringType,
 
-				["bool"] = boolType,
-				["Boolean"] = boolType,
-				["System.Boolean"] = boolType,
+				[boolAlias] = boolType,
+				[boolTypeName] = boolType,
+				[boolFullTypeName] = boolType,
 
 				["sbyte"] = sbyteType,
 				["SByte"] = sbyteType,
@@ -143,13 +180,20 @@ public static class Program
 			};
 		}
 		string? ns = null;
-		string? className = null;
+		string newline = "\n";
 		Indent indent = new(1, '\t');
-		List<ValidatedArg> vargs = [];
+		Verb verb = new("", []);
+		List<Verb> verbs = [];
 		IniValueAcceptorDictionaryBuilder b = new(new(StringComparer.OrdinalIgnoreCase));
-		var iVerbNamespace = b.OnlyLast("Namespace");
+
+		// TODO once the value acceptors hold their keys this can be improved
+		var iConfigNamespace = b.OnlyLast("Namespace");
+		var iConfigIndent = b.OnlyLast("Indent");
+		var iConfigNewLine = b.OnlyLast("NewLine");
+		var configAcceptors = b.Acceptors;
+
+		b = new(new(StringComparer.OrdinalIgnoreCase));
 		var iVerbClass = b.OnlyLast("Class");
-		var iVerbIndent = b.OnlyLast("Indent");
 		var verbAcceptors = b.Acceptors;
 
 		b = new(new(StringComparer.OrdinalIgnoreCase));
@@ -185,51 +229,53 @@ public static class Program
 						// When we see a new type, we have to know what method call we need to use to be able to parse that type.
 						Util.ResetAll(parserAcceptors.Values);
 						sec.AcceptAll(parserAcceptors).ThrowIfError();
-						var type = iParserType.Get("Type");
-						var parseMethod = iParserParseMethod.Get("Method");
+						string type = iParserType.Get("Type");
 						// Default for integral type and returning error message is false
-						ParseMethodReturnType pmrt;
-						if (iParserReturnType.Value != null)
+
+						// If the type is a type that we already know of, then anything that the file does not define should be the defaults for that type
+						// That way, for example we can just say that we want to use a different parse method for Int32 instead of having to redefine everything
+
+						string? parseMethod;
+						ParseMethodReturnType parseMethodReturnType;
+						bool isValueType;
+						bool isIntegralValue;
+						if (typeMeta.TryGetValue(type, out TypeMeta? existingType))
 						{
-							switch (iParserReturnType.Value)
-							{
-								case "bool":
-								case "Boolean":
-								case "System.Boolean":
-									pmrt = ParseMethodReturnType.Boolean;
-									break;
-								case "string":
-								case "string?":
-								case "String":
-								case "String?":
-								case "System.String":
-								case "System.String?":
-									pmrt = ParseMethodReturnType.String;
-									break;
-								case "ParseResult":
-								case "CmdLineNet.ParseResult":
-									pmrt = ParseMethodReturnType.ParseResult;
-									break;
-								default:
-									throw new IniException(IniErrorCode.ValueInvalid, "ReturnType must be bool, string, or ParseResult: " + iParserReturnType.Value);
-							}
+							isValueType = iParserIsValueType.HaveValue ? iParserIsValueType.Value : existingType.IsValueType;
+							isIntegralValue = iIsIntegralType.HaveValue ? iIsIntegralType.Value : existingType.IntegralType;
+							parseMethod = iParserParseMethod.HaveValue ? iParserParseMethod.Value : existingType.ParseMethod;
+							parseMethodReturnType = iParserReturnType.HaveValue ? ParseParseMethodReturnType(iParserReturnType.Value, "ReturnType") : existingType.ParseMethodReturnType;
 						}
 						else
 						{
-							pmrt = ParseMethodReturnType.Boolean;
+							isValueType = iParserIsValueType.Value;
+							parseMethod = iParserParseMethod.Get("ParseMethod");
+							parseMethodReturnType = ParseParseMethodReturnType(iParserReturnType.Value, "ReturnType");
+							isIntegralValue = iIsIntegralType.Value;
 						}
 
-						typeMeta[type] = new TypeMeta(parseMethod, iParserIsValueType.Value, pmrt, iIsIntegralType.Value);
+						typeMeta[type] = new TypeMeta(parseMethod, parseMethodReturnType, isValueType, isIntegralValue);
 						continue;
-					case "Verb":
-						Util.ResetAll(verbAcceptors.Values);
-						sec.AcceptAll(verbAcceptors).ThrowIfError();
-						ns = iVerbNamespace.Get("Namespace");
-						className = iVerbClass.Get("Class");
+					case "Config":
+						Util.ResetAll(configAcceptors.Values);
+						sec.AcceptAll(configAcceptors).ThrowIfError();
 
-						if (iVerbIndent.Value != null)
+						ns = iConfigNamespace.Value;
+						string? rawNewLine = iConfigNewLine.Value;
+						if (rawNewLine != null)
 						{
-							string[] parts = iVerbIndent.Value.Split(' ', StringSplitOptions.TrimEntries);
+							newline = rawNewLine switch
+							{
+								"lf" => "\n",
+								"crlf" => "\r\n",
+								"cr" => "\r",
+								_ => throw new IniException(IniErrorCode.ValueInvalid, "NewLine must be one of lf, crlf, or cr: " + iConfigNewLine.Value),
+							};
+						}
+
+						if (iConfigIndent.Value != null)
+						{
+							string[] parts = iConfigIndent.Value.Split(' ', StringSplitOptions.TrimEntries);
 							if (parts.Length == 2)
 							{
 								if (int.TryParse(parts[0], out int amt))
@@ -238,20 +284,29 @@ public static class Program
 									{
 										"tab" or "tabs" => '\t',
 										"space" or "spaces" => ' ',
-										_ => throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iVerbIndent.Value),
+										_ => throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iConfigIndent.Value),
 									};
 									indent = new(amt, c);
 								}
 								else
 								{
-									throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iVerbIndent.Value);
+									throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iConfigIndent.Value);
 								}
 							}
 							else
 							{
-								throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iVerbIndent.Value);
+								throw new IniException(IniErrorCode.ValueInvalid, "Indent must be a number and either tab or space, like \"1 tab\" or \"3 space\": " + iConfigIndent.Value);
 							}
 						}
+						continue;
+					case "Verb":
+						Util.ResetAll(verbAcceptors.Values);
+						sec.AcceptAll(verbAcceptors).ThrowIfError();
+
+						string className = iVerbClass.Get("Class");
+
+						verb = new(className, []);
+						verbs.Add(verb);
 
 						continue;
 					case "Option":
@@ -306,7 +361,7 @@ public static class Program
 				if (argType == ArgType.Switch)
 				{
 					// Switches are only required if we explicitly say "true"
-					typeName = iArgType.Value ?? "bool";
+					typeName = iArgType.Value ?? boolAlias;
 					typeMeta.TryGetValue(typeName, out tm);
 					required = iArgRequired.HaveValue && iArgRequired.Value;
 					if (tm == null)
@@ -315,7 +370,7 @@ public static class Program
 					}
 					if (iArgMax.Value == 1)
 					{
-						if (typeName != "bool" && typeName != "Boolean" && typeName != "System.Boolean")
+						if (typeName != boolAlias && typeName != boolTypeName && typeName != boolFullTypeName)
 						{
 							throw new IniException(IniErrorCode.ValueInvalid, "Switches that accept only 1 value must be of type bool: " + iArgName.Value);
 						}
@@ -332,7 +387,7 @@ public static class Program
 				}
 				else
 				{
-					typeName = iArgType.Value ?? "string";
+					typeName = iArgType.Value ?? stringAlias;
 					typeMeta.TryGetValue(typeName, out tm);
 					// By default, options and values are required
 					required = !iArgRequired.HaveValue || iArgRequired.Value;
@@ -359,7 +414,7 @@ public static class Program
 					}
 				}
 
-				vargs.Add(new ValidatedArg
+				verb.Args.Add(new ValidatedArg
 				(
 					Name: name,
 					ArgType: argType,
@@ -378,12 +433,10 @@ public static class Program
 				));
 			}
 			ini.Reader.Error.ThrowIfError();
-			if (ns == null) throw new IniException(IniErrorCode.ValueMissing, "Namespace is null");
-			if (className == null) throw new IniException(IniErrorCode.ValueMissing, "Class Name is null");
 		}
 
 		using StreamWriter outputStream = new(sout, new UTF8Encoding(false, false));
-		VerbWriter.WriteVerb(ns, className, vargs, outputStream, indent);
+		VerbWriter.WriteVerb(ns, verbs, outputStream, indent, newline);
 		return 0;
 	}
 }

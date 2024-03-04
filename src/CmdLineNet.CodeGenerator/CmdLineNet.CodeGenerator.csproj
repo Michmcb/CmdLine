@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <None Update="test.ini">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

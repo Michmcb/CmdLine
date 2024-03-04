@@ -2,7 +2,7 @@
   "profiles": {
     "CmdLineNet.CodeGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\m\\src\\proj\\Epub\\Epub\\PackArgs.ini"
+      "commandLineArgs": "../../../test.ini -"
     }
   }
 }

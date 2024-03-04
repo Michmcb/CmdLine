@@ -1,5 +1,4 @@
 ﻿namespace CmdLineNet.CodeGenerator;
-
 public sealed record class ValidatedArg
 (
 	string Name,
