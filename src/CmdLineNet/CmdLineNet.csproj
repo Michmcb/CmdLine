@@ -7,7 +7,7 @@
     <Version>0.4</Version>
     <Authors>Michael McBride</Authors>
     <Company></Company>
-    <Product>SectionConfig</Product>
+    <Product>CmdLineNet</Product>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Description>A .NET command line parsing library, very bare-bones. The aim is to have a source code generator to generate code are compile-time to parse arguments.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>

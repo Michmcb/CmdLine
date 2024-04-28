@@ -220,8 +220,9 @@ public static class Program
 		b = null!;
 		using (IniStreamSectionReader ini = new(new IniStreamReader(new StreamReader(iniFilePath), new IniReaderOptions(allowLineContinuations: true, ignoreComments: true))))
 		{
-			while (ini.TryReadNext(out var sec))
+			while (ini.NextSection())
 			{
+				var sec = ini.Section;
 				ArgType argType;
 				switch (sec.Name)
 				{
