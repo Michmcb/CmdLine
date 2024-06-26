@@ -3,6 +3,14 @@
 	using System.Collections.Generic;
 
 	/// <summary>
+	/// A delegate that handles a known verb.
+	/// </summary>
+	/// <typeparam name="T">The return type.</typeparam>
+	/// <param name="verbName">The name of the verb that is being invoked.</param>
+	/// <param name="args">The remaining arguments.</param>
+	/// <returns>The return value.</returns>
+	public delegate T VerbHandler<out T>(string verbName, IEnumerable<string> args);
+	/// <summary>
 	/// A delegate that handles an unknown verb.
 	/// </summary>
 	/// <typeparam name="T">The return type.</typeparam>

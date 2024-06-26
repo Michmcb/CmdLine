@@ -2,7 +2,6 @@
 {
 	using CmdLineNet.Test.ArgsReaderBuilder;
 	using Xunit;
-
 	public static class ArgsReaderTests
 	{
 		[Fact]

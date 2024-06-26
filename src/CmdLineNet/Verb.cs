@@ -9,12 +9,12 @@
 	/// <typeparam name="T">The return type.</typeparam>
 	public sealed class Verb<T> : IVerb<T>
 	{
-		private readonly Func<IEnumerable<string>, T> execute;
+		private readonly VerbHandler<T> execute;
 		private readonly Action writeHelp;
 		/// <summary>
 		/// Creates a new instance.
 		/// </summary>
-		public Verb(string name, string description, Func<IEnumerable<string>, T> execute, Action writeHelp)
+		public Verb(string name, string description, VerbHandler<T> execute, Action writeHelp)
 		{
 			Name = name;
 			Description = description;
@@ -28,7 +28,7 @@
 		/// <inheritdoc/>
 		public T Execute(IEnumerable<string> args)
 		{
-			return execute(args);
+			return execute(Name, args);
 		}
 		/// <inheritdoc/>
 		public void WriteHelp()
