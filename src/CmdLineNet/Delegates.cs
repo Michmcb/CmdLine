@@ -5,19 +5,19 @@
 	/// <summary>
 	/// A delegate that handles a known verb.
 	/// </summary>
-	/// <typeparam name="T">The return type.</typeparam>
+	/// <typeparam name="TReturn">The return type.</typeparam>
 	/// <param name="verbName">The name of the verb that is being invoked.</param>
 	/// <param name="args">The remaining arguments.</param>
 	/// <returns>The return value.</returns>
-	public delegate T VerbHandler<out T>(string verbName, IEnumerable<string> args);
+	public delegate TReturn VerbHandler<out TReturn>(string verbName, IEnumerable<string> args);
 	/// <summary>
 	/// A delegate that handles an unknown verb.
 	/// </summary>
-	/// <typeparam name="T">The return type.</typeparam>
+	/// <typeparam name="TReturn">The return type.</typeparam>
 	/// <param name="verbName">The name of the unknown verb that was provided.</param>
 	/// <param name="args">The remaining arguments.</param>
 	/// <returns>The return value.</returns>
-	public delegate T UnknownVerbHandler<out T>(string verbName, IEnumerable<string> args);
+	public delegate TReturn UnknownVerbHandler<out TReturn>(string verbName, IEnumerable<string> args);
 	/// <summary>
 	/// A delegate that provides help when help is requested for an unknown verb.
 	/// </summary>
@@ -26,7 +26,15 @@
 	/// <summary>
 	/// A delegate that provides help on a specific verb.
 	/// </summary>
-	/// <typeparam name="T">The return type.</typeparam>
+	/// <typeparam name="TReturn">The return type.</typeparam>
 	/// <param name="verb">The verb on which to provide help.</param>
-	public delegate void VerbHelp<T>(IVerb<T> verb);
+	public delegate void VerbHelp<TReturn>(IVerb<TReturn> verb);
+	/// <summary>
+	/// A delegate executed when a verb encounters an error.
+	/// </summary>
+	/// <typeparam name="TReturn">The return type.</typeparam>
+	/// <param name="verbName">The name of the verb that was invoked.</param>
+	/// <param name="errMsg">The error message</param>
+	/// <returns>The return value.</returns>
+	public delegate TReturn VerbError<out TReturn>(string verbName, string errMsg);
 }

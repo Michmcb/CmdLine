@@ -8,11 +8,24 @@ using System;
 public static class DefaultDelegate
 {
 	/// <summary>
+	/// Returns a default delegate that invokes <see cref="HelpWriter.ConsoleWriteHelp{TId}(System.Collections.Generic.IEnumerable{ArgMeta{TId}}, HelpSettings)"/>,
+	/// passing in <see cref="ArgsReader{TId}.OrderedArguments"/> and <see cref="HelpSettings.Default"/>.
+	/// </summary>
+	/// <typeparam name="TId">The type of the ID.</typeparam>
+	/// <typeparam name="TSelf">The parsed object type.</typeparam>
+	/// <returns>The delegate.</returns>
+	public static Action WriteVerbDetailedHelp<TId, TSelf>()
+		where TSelf : ICmdParseable<TId, TSelf>
+		where TId : struct
+	{
+		return () => HelpWriter.ConsoleWriteHelp(TSelf.GetReader().OrderedArguments, HelpSettings.Default);
+	}
+	/// <summary>
 	/// Returns a default delegate that prints <see cref="IVerb{TReturn}.Name"/> concatenated with <see cref="IVerb{TReturn}.Description"/> to the console, delimited with a colon and space.
 	/// </summary>
 	/// <typeparam name="TReturn">The return type.</typeparam>
 	/// <returns>The delegate.</returns>
-	public static VerbHelp<TReturn> VerbHelp<TReturn>()
+	public static VerbHelp<TReturn> WriteVerbGeneralHelp<TReturn>()
 	{
 		return (verb) => Console.WriteLine(string.Concat(verb.Name, ": ", verb.Description));
 	}
@@ -67,12 +80,12 @@ public static class DefaultDelegate
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	/// <typeparam name="TSelf">The parsed object type.</typeparam>
 	/// <param name="success">The delegate to invoke on success.</param>
-	/// <param name="failFormat">The format string. Use {0} as the format parameter for the error message.</param>
+	/// <param name="failFormat">The format string. Use {0} as the format parameter for the error message, and {1} as the format parameter for the verb name.</param>
 	/// <param name="failReturn">The value to return on failure.</param>
 	/// <returns>The delegate.</returns>
 	public static VerbHandler<TReturn> ExecuteOrFormatErrorMessage<TReturn, TId, TSelf>(Func<TSelf, TReturn> success, string failFormat, TReturn failReturn) where TSelf : ICmdParseable<TId, TSelf> where TId : struct
 	{
-		return (_, args) =>
+		return (verbName, args) =>
 		{
 			if (TSelf.Parse(TSelf.GetReader().Read(args)).Ok(out TSelf parsed, out var errMsg))
 			{
@@ -80,7 +93,7 @@ public static class DefaultDelegate
 			}
 			else
 			{
-				Console.WriteLine(string.Format(failFormat, errMsg));
+				Console.WriteLine(string.Format(failFormat, errMsg, verbName));
 				return failReturn;
 			}
 		};
@@ -95,9 +108,9 @@ public static class DefaultDelegate
 	/// <param name="success">The delegate to invoke on success.</param>
 	/// <param name="failure">The delegate to invoke on failure.</param>
 	/// <returns></returns>
-	public static VerbHandler<TReturn> ExecuteOrError<TReturn, TId, TSelf>(Func<TSelf, TReturn> success, Func<string, TReturn> failure) where TSelf : ICmdParseable<TId, TSelf> where TId : struct
+	public static VerbHandler<TReturn> ExecuteOrError<TReturn, TId, TSelf>(Func<TSelf, TReturn> success, VerbError<TReturn> failure) where TSelf : ICmdParseable<TId, TSelf> where TId : struct
 	{
-		return (_, args) =>
+		return (verbName, args) =>
 		{
 			if (TSelf.Parse(TSelf.GetReader().Read(args)).Ok(out TSelf parsed, out var errMsg))
 			{
@@ -105,7 +118,7 @@ public static class DefaultDelegate
 			}
 			else
 			{
-				return failure(errMsg);
+				return failure(verbName, errMsg);
 			}
 		};
 	}

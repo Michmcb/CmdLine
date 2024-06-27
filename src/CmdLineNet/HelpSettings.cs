@@ -8,13 +8,13 @@
 		/// <summary>
 		/// The default settings.
 		/// </summary>
-		public static readonly HelpSettings Default = new(" ", 1, 3, true);
-		public HelpSettings(string longShortNameSeparator, int leftMargin, int rightMargin, bool alignHelpTextAcrossAllGroups)
+		public static readonly HelpSettings Default = new(" ", 1, 3, HelpTextAlign.AcrossAllGroups);
+		public HelpSettings(string longShortNameSeparator, int leftMargin, int rightMargin, HelpTextAlign helpTextAlign)
 		{
 			LongShortNameSeparator = longShortNameSeparator;
 			LeftMargin = leftMargin;
 			RightMargin = rightMargin;
-			AlignHelpTextAcrossAllGroups = alignHelpTextAcrossAllGroups;
+			HelpTextAlign = helpTextAlign;
 		}
 		/// <summary>
 		/// The separator to use between long and short names.
@@ -29,9 +29,8 @@
 		/// </summary>
 		public int RightMargin { get; }
 		/// <summary>
-		/// If true, help text for different groups will have the same alignment as eachother.
-		/// If false, help text for different groups will only be aligned with help text in the same group
+		/// How to align help text.
 		/// </summary>
-		public bool AlignHelpTextAcrossAllGroups { get; }
+		public HelpTextAlign HelpTextAlign { get; }
 	}
 }
