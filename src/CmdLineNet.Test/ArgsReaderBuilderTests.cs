@@ -1,4 +1,4 @@
-namespace CmdLineNet.Test.ArgsReaderBuilder
+namespace CmdLineNet.Test
 {
 	using CmdLineNet;
 	using Xunit;

@@ -64,7 +64,6 @@
 		{
 			// I feel like testing console output like this is not the best way to do it....but at least it works...
 			DictionaryVerbHandler<int> verbs = new([], DefaultDelegate.UnknownVerbHandler(1));
-
 			string[] goodArgs = ["-a", "foo", "--beta", "bar", "-c", "baz", "-e", "value1", "value2"];
 
 			verbs.AddVerb(new Verb<int>("alpha", "The first verb", DefaultDelegate.ExecuteOrErrorMessage<int, byte, Alpha>(s => 2, 5), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings(" ", 1, 3, HelpTextAlign.None))));

@@ -1,7 +1,6 @@
 ﻿namespace CmdLineNet.Test
 {
 	using Xunit;
-
 	public static class AttributeTests
 	{
 		[Fact]
@@ -29,7 +28,7 @@
 			a = new()
 			{
 				ShortName = 's',
-				LongName ="Long",
+				LongName = "Long",
 				Min = 2,
 				Max = 3,
 				Help = "Help",

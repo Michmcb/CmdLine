@@ -60,8 +60,8 @@
 		{
 			// TODO we need a way for the reader to enforce some arguments being mutually exclusive (if this is the correct place for that)
 			// http://docopt.org/
-			List<ArgCount<TId>> valueArgs = new(Values.Count);
-			valueArgs.AddRange(Values.Select(x => new ArgCount<TId>(x)));
+			List<IdCount<TId>> valueArgs = new(Values.Count);
+			valueArgs.AddRange(Values.Select(x => new IdCount<TId>(x.Id, x.Max)));
 			DuplicatingValuesEnumerator<TId> vEnum = new(valueArgs.GetEnumerator());
 
 			// TODO if the enum starts from 0 and is contiguous, then we can do a sneaky trick here, and just have an array, indexing into it by using TId as an integer index
@@ -99,7 +99,7 @@
 						while (args.MoveNext())
 						{
 							yield return vEnum.MoveNext()
-								? new(vEnum.Current.Id, args.Current, ArgState.Value)
+								? new(vEnum.Current, args.Current, ArgState.Value)
 								: new(default, "Too many values were provided: " + args.Current, ArgState.TooManyValues);
 						}
 					}
@@ -151,7 +151,7 @@
 					{
 						// Lone dash
 						yield return vEnum.MoveNext()
-							? new(vEnum.Current.Id, s, ArgState.Value)
+							? new(vEnum.Current, s, ArgState.Value)
 							: new(default, "Too many values were provided: " + s, ArgState.TooManyValues);
 					}
 					else if (s.Length == 2)
@@ -224,7 +224,7 @@
 				{
 					// Value
 					yield return vEnum.MoveNext()
-						? new(vEnum.Current.Id, s, ArgState.Value)
+						? new(vEnum.Current, s, ArgState.Value)
 						: new(default, "Too many values were provided: " + s, ArgState.TooManyValues);
 				}
 			}
