@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net7.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.4</Version>
+    <Version>0.5</Version>
     <Authors>Michael McBride</Authors>
     <Company></Company>
     <Product>CmdLineNet</Product>
@@ -16,9 +16,11 @@
     <RepositoryUrl>https://github.com/Michmcb/CmdLine</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageTags>commandline, parsing, parser, option, command, line, argument, library</PackageTags>
-    <PackageReleaseNotes>- HelpWriter added
-- ArgMeta holds short and long name now, to help with writing help
-- Values can have a friendly name for writing help</PackageReleaseNotes>
+    <PackageReleaseNotes>- Verbs added
+- DuplicatingValuesEnumerator now just returns the IDs intead of the entire struct containing the ID and Max properties
+- HelpWriterSettings has more flexible alignment settings
+- Writing help is improved and has better alignment, and lower allocation of strings
+- Default delegates added</PackageReleaseNotes>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageIconUrl />
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
