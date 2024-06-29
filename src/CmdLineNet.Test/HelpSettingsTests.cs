@@ -6,7 +6,7 @@
 		[Fact]
 		public static void Ctor()
 		{
-			HelpSettings s = new("x", 100, 200, HelpTextAlign.None);
+			HelpWriterSettings s = new("x", 100, 200, HelpTextAlign.None);
 			Assert.Equal("x", s.LongShortNameSeparator);
 			Assert.Equal(100, s.LeftMargin);
 			Assert.Equal(200, s.RightMargin);
@@ -15,7 +15,7 @@
 		[Fact]
 		public static void Default()
 		{
-			HelpSettings s = HelpSettings.Default;
+			HelpWriterSettings s = HelpWriterSettings.Default;
 			Assert.Equal(" ", s.LongShortNameSeparator);
 			Assert.Equal(1, s.LeftMargin);
 			Assert.Equal(3, s.RightMargin);

@@ -13,7 +13,7 @@
 	public sealed class HelpWriter : IDisposable
 	{
 		private const string TwoDashes = "--";
-		private readonly HelpSettings settings;
+		private readonly HelpWriterSettings settings;
 		private readonly TextWriter output;
 		private IMemoryOwner<char> memOwner;
 		/// <summary>
@@ -22,7 +22,7 @@
 		/// <param name="settings">The settings.</param>
 		/// <param name="output">The <see cref="TextWriter"/> to write help to.</param>
 		/// <param name="initialBufferSize">The buffer size to use for <see cref="char"/> pools, to avoid string allocations.</param>
-		public HelpWriter(HelpSettings settings, TextWriter output, int initialBufferSize = 256)
+		public HelpWriter(HelpWriterSettings settings, TextWriter output, int initialBufferSize = 256)
 		{
 			this.settings = settings;
 			this.output = output;
@@ -168,7 +168,7 @@
 		//// <param name="argMetas"></param>
 		//// <param name="settings"></param>
 		//// <returns></returns>
-		private static int CalculateRightMargin<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpSettings settings) where TId : struct
+		private static int CalculateRightMargin<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpWriterSettings settings) where TId : struct
 		{
 			// min length is both margins, separator's length, short name's -, and long name's --
 			int leftMargin = settings.LeftMargin;
@@ -206,7 +206,7 @@
 		/// <typeparam name="TId">The type of the ID.</typeparam>
 		/// <param name="argMetas">The arguments to write.</param>
 		/// <param name="settings">The settings.</param>
-		public static void ConsoleWriteHelp<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpSettings settings) where TId : struct
+		public static void ConsoleWriteHelp<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpWriterSettings settings) where TId : struct
 		{
 			WriteHelp(argMetas, settings, Console.Out);
 		}
@@ -217,7 +217,7 @@
 		/// <param name="argMetas">The arguments to write.</param>
 		/// <param name="settings">The settings.</param>
 		/// <param name="output">The <see cref="TextWriter"/> to write help to.</param>
-		public static void WriteHelp<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpSettings settings, TextWriter output) where TId : struct
+		public static void WriteHelp<TId>(IEnumerable<ArgMeta<TId>> argMetas, HelpWriterSettings settings, TextWriter output) where TId : struct
 		{
 			List<ArgMeta<TId>> options = [];
 			List<ArgMeta<TId>> switches = [];
@@ -246,7 +246,7 @@
 		/// <typeparam name="TId">The type of the ID.</typeparam>
 		/// <param name="groups">The arguments to write.</param>
 		/// <param name="settings">The settings.</param>
-		public static void ConsoleWriteHelp<TId>(IReadOnlyCollection<ArgMetasGroup<TId>> groups, HelpSettings settings) where TId : struct
+		public static void ConsoleWriteHelp<TId>(IReadOnlyCollection<ArgMetasGroup<TId>> groups, HelpWriterSettings settings) where TId : struct
 		{
 			using HelpWriter hw = new(settings, Console.Out);
 			hw.WriteHelp(groups);

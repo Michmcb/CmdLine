@@ -3,13 +3,16 @@
 	/// <summary>
 	/// Settings for writing help.
 	/// </summary>
-	public sealed class HelpSettings
+	public sealed class HelpWriterSettings
 	{
 		/// <summary>
 		/// The default settings.
 		/// </summary>
-		public static readonly HelpSettings Default = new(" ", 1, 3, HelpTextAlign.AcrossAllGroups);
-		public HelpSettings(string longShortNameSeparator, int leftMargin, int rightMargin, HelpTextAlign helpTextAlign)
+		public static readonly HelpWriterSettings Default = new(" ", 1, 3, HelpTextAlign.AcrossAllGroups);
+		/// <summary>
+		/// Creates a new instance.
+		/// </summary>
+		public HelpWriterSettings(string longShortNameSeparator, int leftMargin, int rightMargin, HelpTextAlign helpTextAlign)
 		{
 			LongShortNameSeparator = longShortNameSeparator;
 			LeftMargin = leftMargin;

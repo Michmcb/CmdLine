@@ -68,8 +68,8 @@
 			DictionaryVerbHandler<int> verbs = new([], DefaultDelegate.UnknownVerbHandler(1));
 			string[] goodArgs = ["-a", "foo", "--beta", "bar", "-c", "baz", "-e", "value1", "value2"];
 
-			verbs.AddVerb("alpha", "The first verb", DefaultDelegate.ExecuteOrErrorMessage<int, byte, Alpha>(s => 2, 5), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings(" ", 1, 3, HelpTextAlign.None)));
-			verbs.AddVerb("beta", "The second verb", DefaultDelegate.ExecuteOrFormatErrorMessage<int, byte, Alpha>(s => 3, "Got error \"{0}\" handling verb {1}", 6), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings("|", 2, 2, HelpTextAlign.WithinGroups)));
+			verbs.AddVerb("alpha", "The first verb", DefaultDelegate.ExecuteOrErrorMessage<int, byte, Alpha>(s => 2, 5), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpWriterSettings(" ", 1, 3, HelpTextAlign.None)));
+			verbs.AddVerb("beta", "The second verb", DefaultDelegate.ExecuteOrFormatErrorMessage<int, byte, Alpha>(s => 3, "Got error \"{0}\" handling verb {1}", 6), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpWriterSettings("|", 2, 2, HelpTextAlign.WithinGroups)));
 			verbs.AddVerb("gamma", "The third verb", DefaultDelegate.ExecuteOrError<int, byte, Alpha>(s => 4, (v,e) => { Console.WriteLine("We got an error: " + e); return 7; }), DefaultDelegate.WriteVerbDetailedHelp<byte, Alpha>());
 			verbs.AddHelpVerb("help", "The help verb", "This verb provides help for other verbs", 0, DefaultDelegate.WriteVerbGeneralHelp<int>(), DefaultDelegate.UnknownVerbHelp);
 

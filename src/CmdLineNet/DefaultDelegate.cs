@@ -8,8 +8,8 @@ using System;
 public static class DefaultDelegate
 {
 	/// <summary>
-	/// Returns a default delegate that invokes <see cref="HelpWriter.ConsoleWriteHelp{TId}(System.Collections.Generic.IEnumerable{ArgMeta{TId}}, HelpSettings)"/>,
-	/// passing in <see cref="ArgsReader{TId}.OrderedArguments"/> and <see cref="HelpSettings.Default"/>.
+	/// Returns a default delegate that invokes <see cref="HelpWriter.ConsoleWriteHelp{TId}(System.Collections.Generic.IEnumerable{ArgMeta{TId}}, HelpWriterSettings)"/>,
+	/// passing in <see cref="ArgsReader{TId}.OrderedArguments"/> and <see cref="HelpWriterSettings.Default"/>.
 	/// </summary>
 	/// <typeparam name="TId">The type of the ID.</typeparam>
 	/// <typeparam name="TSelf">The parsed object type.</typeparam>
@@ -18,7 +18,7 @@ public static class DefaultDelegate
 		where TSelf : ICmdParseable<TId, TSelf>
 		where TId : struct
 	{
-		return () => HelpWriter.ConsoleWriteHelp(TSelf.GetReader().OrderedArguments, HelpSettings.Default);
+		return () => HelpWriter.ConsoleWriteHelp(TSelf.GetReader().OrderedArguments, HelpWriterSettings.Default);
 	}
 	/// <summary>
 	/// Returns a default delegate that prints <see cref="IVerb{TReturn}.Name"/> concatenated with <see cref="IVerb{TReturn}.Description"/> to the console, delimited with a colon and space.
