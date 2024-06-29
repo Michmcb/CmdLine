@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CmdLineNet.Readme": {
+      "commandName": "Project",
+      "commandLineArgs": "move -s blah.txt -d moved.txt"
+    }
+  }
+}

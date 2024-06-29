@@ -2,7 +2,7 @@
 {
 	using System.Collections.Generic;
 	/// <summary>
-	/// Stores all known verbs in a <see cref="List{T}"/>.
+	/// Stores all known verbs in a <see cref="Dictionary{TKey, TValue}"/>.
 	/// Best used with a larger number of verbs, or where it's used many times, where the cost of creating a dictionary pays off.
 	/// As always, if you are overly concerned with performance, it's best to benchmark and see what works for your use-case.
 	/// </summary>
