@@ -6,9 +6,9 @@
 	public sealed class HelpWriterSettings
 	{
 		/// <summary>
-		/// The default settings.
+		/// The default settings. They are: <see cref="LongShortNameSeparator"/> is a space, <see cref="LeftMargin"/> is 1, <see cref="RightMargin"/> is 3, and <see cref="HelpTextAlign"/> is <see cref="HelpTextAlign.AcrossAllGroups"/>.
 		/// </summary>
-		public static readonly HelpWriterSettings Default = new(" ", 1, 3, HelpTextAlign.AcrossAllGroups);
+		public static HelpWriterSettings Default { get; } = new(" ", 1, 3, HelpTextAlign.AcrossAllGroups);
 		/// <summary>
 		/// Creates a new instance.
 		/// </summary>
