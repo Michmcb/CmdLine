@@ -14,7 +14,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/Michmcb/CmdLine</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Michmcb/CmdLine</RepositoryUrl>
-    <RepositoryType>Github</RepositoryType>
+    <RepositoryType>git</RepositoryType>
     <PackageTags>commandline, parsing, parser, option, command, line, argument, library</PackageTags>
     <PackageReleaseNotes>- Verbs added
 - DuplicatingValuesEnumerator now just returns the IDs intead of the entire struct containing the ID and Max properties
@@ -25,6 +25,8 @@
     <PackageIcon>Icon.png</PackageIcon>
     <PackageIconUrl />
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Title>CmdLineNet</Title>
+    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>
