@@ -228,7 +228,7 @@ public static class Program
 				{
 					case "Type":
 						// When we see a new type, we have to know what method call we need to use to be able to parse that type.
-						Util.ResetAll(parserAcceptors.Values);
+						IniUtil.ResetAll(parserAcceptors.Values);
 						sec.AcceptAll(parserAcceptors).ThrowIfError();
 						string type = iParserType.Get("Type");
 						// Default for integral type and returning error message is false
@@ -258,7 +258,7 @@ public static class Program
 						typeMeta[type] = new TypeMeta(parseMethod, parseMethodReturnType, isValueType, isIntegralValue);
 						continue;
 					case "Config":
-						Util.ResetAll(configAcceptors.Values);
+						IniUtil.ResetAll(configAcceptors.Values);
 						sec.AcceptAll(configAcceptors).ThrowIfError();
 
 						ns = iConfigNamespace.Value;
@@ -301,7 +301,7 @@ public static class Program
 						}
 						continue;
 					case "Verb":
-						Util.ResetAll(verbAcceptors.Values);
+						IniUtil.ResetAll(verbAcceptors.Values);
 						sec.AcceptAll(verbAcceptors).ThrowIfError();
 
 						string className = iVerbClass.Get("Class");
@@ -312,7 +312,7 @@ public static class Program
 						continue;
 					case "Option":
 						argType = ArgType.Option;
-						Util.ResetAll(argAcceptors.Values);
+						IniUtil.ResetAll(argAcceptors.Values);
 						iArgMin.Value = 1;
 						iArgMax.Value = 1;
 						sec.AcceptAll(argAcceptors).ThrowIfError();
@@ -323,7 +323,7 @@ public static class Program
 						break;
 					case "Switch":
 						argType = ArgType.Switch;
-						Util.ResetAll(argAcceptors.Values);
+						IniUtil.ResetAll(argAcceptors.Values);
 						iArgMin.Value = 1;
 						iArgMax.Value = 1;
 						sec.AcceptAll(argAcceptors).ThrowIfError();
@@ -334,7 +334,7 @@ public static class Program
 						break;
 					case "Value":
 						argType = ArgType.Value;
-						Util.ResetAll(argAcceptors.Values);
+						IniUtil.ResetAll(argAcceptors.Values);
 						iArgMin.Value = 1;
 						iArgMax.Value = 1;
 						sec.AcceptAll(argAcceptors).ThrowIfError();

@@ -1,7 +1,6 @@
 ﻿namespace CmdLineNet.Test.ArgsReaderBuilder
 {
 	using System.Collections.Generic;
-
 	public sealed record class Args(string A, string B, string C, bool D, bool E, bool F) : ICmdParseable<ArgId, Args>
 	{
 		private static readonly ArgsReader<ArgId> reader = new ArgsReaderBuilder<ArgId>()

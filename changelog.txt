@@ -1,0 +1,7 @@
+0.5
+- Verbs added
+- DuplicatingValuesEnumerator now just returns the IDs intead of the entire struct containing the ID and Max properties
+- HelpWriterSettings has more flexible alignment settings, and the default is assignable
+- Writing help is improved; has better alignment, less allocation of strings, and can write to any TextWriter
+- Default delegates added, and many delegates are explicitly defined instead of using Func/Action for clarity
+- More documentation added

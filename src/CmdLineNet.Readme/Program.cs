@@ -1,12 +1,10 @@
-# CmdLine
-A helper library used to parse command line arguments, at a very basic level. Aiming to add a source generator as well.
+﻿namespace CmdLineNet.Readme;
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-# Usage
-Note that because this package is currently not at 1.0 yet, this may change. Below is some example code.
-
-
-```cs
 public sealed record class MoveArgs(string Source, string Dest, bool Overwrite) : ICmdParseable<MoveArgs.Id, MoveArgs>
 {
 	public enum Id { Source, Dest, Overwrite }
@@ -141,5 +139,3 @@ public static class Program
 		}
 	}
 }
-
-```

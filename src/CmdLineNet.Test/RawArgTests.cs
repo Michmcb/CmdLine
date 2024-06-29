@@ -1,7 +1,6 @@
 ﻿namespace CmdLineNet.Test
 {
 	using Xunit;
-
 	public static class RawArgTests
 	{
 		[Fact]
