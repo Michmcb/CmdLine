@@ -1,6 +1,8 @@
 namespace CmdLineNet.Test
 {
 	using CmdLineNet;
+	using System;
+	using System.Collections.Generic;
 	using Xunit;
 	public static class ArgsReaderBuilderTests
 	{

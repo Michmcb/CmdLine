@@ -1,6 +1,8 @@
 ﻿namespace CmdLineNet.Test
 {
+	using System;
 	using System.Collections.Generic;
+	using System.IO;
 	using Xunit;
 
 	public static class VerbHandlerTests
@@ -66,10 +68,10 @@
 			DictionaryVerbHandler<int> verbs = new([], DefaultDelegate.UnknownVerbHandler(1));
 			string[] goodArgs = ["-a", "foo", "--beta", "bar", "-c", "baz", "-e", "value1", "value2"];
 
-			verbs.AddVerb(new Verb<int>("alpha", "The first verb", DefaultDelegate.ExecuteOrErrorMessage<int, byte, Alpha>(s => 2, 5), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings(" ", 1, 3, HelpTextAlign.None))));
-			verbs.AddVerb(new Verb<int>("beta", "The second verb", DefaultDelegate.ExecuteOrFormatErrorMessage<int, byte, Alpha>(s => 3, "Got error \"{0}\" handling verb {1}", 6), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings("|", 2, 2, HelpTextAlign.WithinGroups))));
-			verbs.AddVerb(new Verb<int>("gamma", "The third verb", DefaultDelegate.ExecuteOrError<int, byte, Alpha>(s => 4, (v,e) => { Console.WriteLine("We got an error: " + e); return 7; }), DefaultDelegate.WriteVerbDetailedHelp<byte, Alpha>()));
-			verbs.AddVerb(new HelpVerb<int>("help", "The help verb", "This verb provides help for other verbs", verbs.AllVerbs, 0, DefaultDelegate.WriteVerbGeneralHelp<int>(), DefaultDelegate.UnknownVerbHelp));
+			verbs.AddVerb("alpha", "The first verb", DefaultDelegate.ExecuteOrErrorMessage<int, byte, Alpha>(s => 2, 5), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings(" ", 1, 3, HelpTextAlign.None)));
+			verbs.AddVerb("beta", "The second verb", DefaultDelegate.ExecuteOrFormatErrorMessage<int, byte, Alpha>(s => 3, "Got error \"{0}\" handling verb {1}", 6), () => HelpWriter.ConsoleWriteHelp(Alpha.GetReader().OrderedArguments, new HelpSettings("|", 2, 2, HelpTextAlign.WithinGroups)));
+			verbs.AddVerb("gamma", "The third verb", DefaultDelegate.ExecuteOrError<int, byte, Alpha>(s => 4, (v,e) => { Console.WriteLine("We got an error: " + e); return 7; }), DefaultDelegate.WriteVerbDetailedHelp<byte, Alpha>());
+			verbs.AddHelpVerb("help", "The help verb", "This verb provides help for other verbs", 0, DefaultDelegate.WriteVerbGeneralHelp<int>(), DefaultDelegate.UnknownVerbHelp);
 
 			Assert.Equal(1, verbs.HandleVerb("foo", []));
 			Assert.Equal("Unrecognized verb: foo\r\n", sout.ToString());

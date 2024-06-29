@@ -1,5 +1,7 @@
 ﻿namespace CmdLineNet.Test
 {
+	using System;
+	using System.Collections.Generic;
 	using Xunit;
 	public static class DictionaryVerbHandlerTests
 	{
@@ -21,10 +23,10 @@
 
 			List<IVerb<int>> helpVerbs = [];
 			bool badHelpCalled = false;
-			dict.AddVerb(new Verb<int>("verb1", "descr1", (verb, args) => { v1Called = true; v1Args = args; return 1; }, () => h1Called = true));
-			dict.AddVerb(new Verb<int>("verb2", "descr2", (verb, args) => { v2Called = true; v2Args = args; return 2; }, () => h2Called = true));
-			dict.AddVerb(new Verb<int>("verb3", "descr3", (verb, args) => { v3Called = true; v3Args = args; return 3; }, () => h3Called = true));
-			dict.AddVerb(new HelpVerb<int>("help", "help", "help me", dict.AllVerbs, 4, helpVerbs.Add, (verb) => badHelpCalled = true));
+			dict.AddVerb("verb1", "descr1", (verb, args) => { v1Called = true; v1Args = args; return 1; }, () => h1Called = true);
+			dict.AddVerb("verb2", "descr2", (verb, args) => { v2Called = true; v2Args = args; return 2; }, () => h2Called = true);
+			dict.AddVerb("verb3", "descr3", (verb, args) => { v3Called = true; v3Args = args; return 3; }, () => h3Called = true);
+			dict.AddHelpVerb("help", "help", "help me", 4, helpVerbs.Add, (verb) => badHelpCalled = true);
 
 			string[] a = ["a1", "a2", "a3"];
 			Assert.Equal(1, dict.HandleVerb("verb1", a));

@@ -1,8 +1,6 @@
 ﻿namespace CmdLineNet
 {
 	using System.Collections.Generic;
-	using System.Runtime.CompilerServices;
-
 	/// <summary>
 	/// Stores all known verbs in a <see cref="List{T}"/>.
 	/// Best used with a larger number of verbs, or where it's used many times, where the cost of creating a dictionary pays off.
@@ -27,15 +25,6 @@
 		/// The delegate that is invoked when an attempting to invoke an unknown verb.
 		/// </summary>
 		public UnknownVerbHandler<TReturn> UnknownVerbHandler { get; }
-		/// <summary>
-		/// Adds a verb, keyed by name.
-		/// </summary>
-		/// <param name="verb">The verb to add.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void AddVerb(IVerb<TReturn> verb)
-		{
-			AllVerbs.Add(verb.Name, verb);
-		}
 		/// <summary>
 		/// Gets a verb from <see cref="AllVerbs"/> with the name <paramref name="verbName"/>, and invokes <see cref="Verb{T}.Execute(IEnumerable{string})"/>.
 		/// If none matches, invokes <see cref="UnknownVerbHandler"/>.

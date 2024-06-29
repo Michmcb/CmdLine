@@ -1,6 +1,7 @@
 ﻿namespace CmdLineNet.Test
 {
 	using System.Collections;
+	using System.Collections.Generic;
 	using Xunit;
 
 	public static class DuplicatingValuesEnumeratorTests

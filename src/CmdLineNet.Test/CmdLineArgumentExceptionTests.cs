@@ -1,5 +1,6 @@
 ﻿namespace CmdLineNet.Test
 {
+	using System;
 	using Xunit;
 
 	public static class CmdLineArgumentExceptionTests
