@@ -35,7 +35,7 @@ public static class DefaultDelegate
 	/// </summary>
 	/// <param name="returnValue">The value to return.</param>
 	/// <returns>Always returns <paramref name="returnValue"/>.</returns>
-	public static UnknownVerbHandler<TReturn> UnknownVerbHandler<TReturn>(TReturn returnValue) where TReturn : struct
+	public static UnknownVerbHandler<TReturn> UnknownVerbHandler<TReturn>(TReturn returnValue)
 	{
 		return (verbName, _) =>
 		{

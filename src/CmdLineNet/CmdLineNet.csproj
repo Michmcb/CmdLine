@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net7.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.5</Version>
+    <Version>0.5.1</Version>
     <Authors>Michael McBride</Authors>
     <Company></Company>
     <Product>CmdLineNet</Product>
@@ -16,12 +16,7 @@
     <RepositoryUrl>https://github.com/Michmcb/CmdLine</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>commandline, parsing, parser, option, command, line, argument, library</PackageTags>
-    <PackageReleaseNotes>- Verbs added
-- DuplicatingValuesEnumerator now just returns the IDs intead of the entire struct containing the ID and Max properties
-- HelpWriterSettings has more flexible alignment settings, and the default is assignable
-- Writing help is improved; has better alignment, less allocation of strings, and can write to any TextWriter
-- Default delegates added, and many delegates are explicitly defined instead of using Func/Action for clarity
-- More documentation added</PackageReleaseNotes>
+    <PackageReleaseNotes>- Removed unnecessary generic struct constraint on TReturn on DefaultDelegate.UnknownVerbHandler</PackageReleaseNotes>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageIconUrl />
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
